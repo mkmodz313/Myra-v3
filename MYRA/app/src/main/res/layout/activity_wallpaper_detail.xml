@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/wdRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#12001A">
+
+    <SurfaceView
+        android:id="@+id/wdSurface"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+
+    <ImageView
+        android:id="@+id/wdThumb"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="centerCrop"/>
+
+    <ProgressBar
+        android:id="@+id/wdLoading"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="center"
+        android:indeterminateTint="#FFFF4FD8"
+        android:visibility="gone"/>
+
+    <ImageButton
+        android:id="@+id/wdBack"
+        android:layout_width="46dp"
+        android:layout_height="46dp"
+        android:layout_margin="12dp"
+        android:background="@drawable/bg_neon_circle_btn"
+        android:contentDescription="Back"
+        android:padding="11dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_arrow_back"/>
+
+    <LinearLayout
+        android:id="@+id/wdPanel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@drawable/bg_detail_panel"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingTop="18dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="18dp">
+
+        <TextView
+            android:id="@+id/wdTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:shadowColor="#FFFF2BD6"
+            android:shadowDx="0"
+            android:shadowDy="0"
+            android:shadowRadius="12"
+            android:textColor="#FFFFFFFF"
+            android:textSize="22sp"/>
+
+        <TextView
+            android:id="@+id/wdMeta"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="#FFFFB8F2"
+            android:textSize="13sp"/>
+
+        <TextView
+            android:id="@+id/wdDesc"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:maxLines="4"
+            android:ellipsize="end"
+            android:textColor="#FFF3D9F5"
+            android:textSize="14sp"/>
+
+        <ProgressBar
+            android:id="@+id/wdProgress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="6dp"
+            android:layout_marginTop="12dp"
+            android:progressTint="#FFFF4FD8"
+            android:visibility="gone"/>
+
+        <TextView
+            android:id="@+id/wdStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="#FFFFD6F8"
+            android:textSize="13sp"
+            android:visibility="gone"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:orientation="horizontal"
+            android:weightSum="2">
+
+            <Button
+                android:id="@+id/wdPreview"
+                android:layout_width="0dp"
+                android:layout_height="54dp"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_neon_button_outline"
+                android:fontFamily="sans-serif-medium"
+                android:stateListAnimator="@null"
+                android:text="Preview"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFFFF"
+                android:textSize="16sp"/>
+
+            <Button
+                android:id="@+id/wdSet"
+                android:layout_width="0dp"
+                android:layout_height="54dp"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_neon_button"
+                android:fontFamily="sans-serif-medium"
+                android:stateListAnimator="@null"
+                android:text="Set Wallpaper"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFFFF"
+                android:textSize="16sp"/>
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

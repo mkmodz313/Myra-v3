@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // The ONLY administrator is this signed-in account (checked on Google's servers).
+    function isAdmin() {
+      return request.auth != null
+          && request.auth.token.email == 'umarmalang496@gmail.com';
+    }
+
+    match /wallpapers/{id} {
+      // Apps see PUBLISHED wallpapers only; the admin sees everything.
+      allow read: if resource.data.published == true || isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        // anonymous statistics: only downloads/views, only +1, only on published items
+        resource.data.published == true &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['downloads', 'views']) &&
+        (!('downloads' in request.resource.data.diff(resource.data).affectedKeys()) ||
+           request.resource.data.downloads == resource.data.downloads + 1) &&
+        (!('views' in request.resource.data.diff(resource.data).affectedKeys()) ||
+           request.resource.data.views == resource.data.views + 1)
+      );
+    }
+  }
+}

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="false"
+    android:scrollbars="none">
+
+    <LinearLayout
+        android:id="@+id/welcomeCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:paddingStart="14dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="14dp">
+
+        <ImageView
+            android:id="@+id/welcomeArt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:adjustViewBounds="true"
+            android:contentDescription="Welcome"
+            android:scaleType="fitCenter"
+            android:src="@drawable/welcome_header"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="-14dp"
+            android:background="@drawable/bg_welcome_panel"
+            android:orientation="vertical"
+            android:paddingStart="20dp"
+            android:paddingTop="20dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="20dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="Hamare WhatsApp Channel se judein ❤️\nUpdates, naye wallpapers aur tips sabse pehle yahin!"
+                android:textColor="#FFFFE0FA"
+                android:textSize="14sp"/>
+
+            <Button
+                android:id="@+id/welcomeJoin"
+                android:layout_width="match_parent"
+                android:layout_height="58dp"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_btn_gold"
+                android:fontFamily="sans-serif-medium"
+                android:stateListAnimator="@null"
+                android:text="📢  Join WhatsApp Channel"
+                android:textAllCaps="false"
+                android:textColor="#FF3A1B00"
+                android:textSize="17sp"/>
+
+            <Button
+                android:id="@+id/welcomeStart"
+                android:layout_width="match_parent"
+                android:layout_height="58dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_save_button"
+                android:fontFamily="sans-serif-medium"
+                android:stateListAnimator="@null"
+                android:text="💬  Start Chat"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFFFF"
+                android:textSize="17sp"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <CheckBox
+                    android:id="@+id/welcomeDontShow"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:buttonTint="#FFFF4FD8"
+                    android:text="Dobara mat dikhao"
+                    android:textColor="#FFE8C4EE"
+                    android:textSize="13sp"/>
+
+                <TextView
+                    android:id="@+id/welcomeClose"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:padding="10dp"
+                    android:text="Close ✕"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="14sp"/>
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>
