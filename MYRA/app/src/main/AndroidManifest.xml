@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.myra.assistant">
+
+    <uses-sdk
+        android:minSdkVersion="26"
+        android:targetSdkVersion="35"/>
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN"/>
+            <category android:name="android.intent.category.LAUNCHER"/>
+        </intent>
+    </queries>
+
+    <!-- Permissions -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.READ_CONTACTS"/>
+    <uses-permission android:name="android.permission.WRITE_CONTACTS"/>
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+    <uses-permission android:name="android.permission.READ_CALL_LOG"/>
+    <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS"/>
+    <uses-permission android:name="android.permission.CALL_PHONE"/>
+    <uses-permission android:name="android.permission.SEND_SMS"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.FLASHLIGHT"/>
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+
+    <uses-feature android:name="android.software.live_wallpaper" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera.flash" android:required="false"/>
+
+    <application
+        android:name=".MyraApp"
+        android:allowBackup="false"
+        android:icon="@mipmap/img"
+        android:label="MYRA"
+        android:roundIcon="@mipmap/img"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Myra"
+        android:usesCleartextTraffic="true"
+        android:networkSecurityConfig="@xml/network_security_config">
+
+        <!-- SPLASH (launcher entry) -->
+        <activity
+            android:name=".ui.main.SplashActivity"
+            android:exported="true"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+
+        <!-- MAIN ACTIVITY -->
+        <activity
+            android:name=".ui.main.MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.ASSIST"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+        </activity>
+
+        <!-- APP LOCK -->
+        <activity
+            android:name=".security.AppLockActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Myra.Transparent"/>
+
+        <!-- SETTINGS -->
+        <activity
+            android:name=".ui.settings.SettingsActivity"
+            android:exported="false"/>
+
+        <!-- SECURITY SETTINGS -->
+        <activity
+            android:name=".security.SecuritySettingsActivity"
+            android:exported="false"/>
+
+        <!-- PATTERN SETUP -->
+        <activity
+            android:name=".security.PatternSetupActivity"
+            android:exported="false"/>
+
+        <!-- APP SELECTION -->
+        <activity
+            android:name=".security.AppSelectionActivity"
+            android:exported="false"/>
+
+        <!-- CALL ASSISTANT -->
+        <activity
+            android:name=".ui.main.CallAssistantActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Myra.Transparent"/>
+
+        <!-- CHAT (WhatsApp-style, shared voice + text history) -->
+        <activity
+            android:name=".ui.chat.ChatActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize"/>
+
+        <!-- ADMIN (email + password login, then wallpaper upload panel) -->
+        <activity
+            android:name=".admin.AdminLoginActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize"/>
+        <activity
+            android:name=".admin.AdminPanelActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize"/>
+
+        <!-- LIVE WALLPAPERS -->
+        <activity
+            android:name=".wallpaper.WallpaperActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustPan"/>
+        <activity
+            android:name=".wallpaper.WallpaperDetailActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"/>
+
+        <!-- REAL VIDEO LIVE WALLPAPER SERVICE (official WallpaperService API) -->
+        <service
+            android:name=".wallpaper.VideoWallpaperService"
+            android:exported="true"
+            android:label="MYRA Live Wallpaper"
+            android:permission="android.permission.BIND_WALLPAPER">
+            <intent-filter>
+                <action android:name="android.service.wallpaper.WallpaperService"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.service.wallpaper"
+                android:resource="@xml/myra_wallpaper"/>
+        </service>
+
+        <!-- MESSAGE ANNOUNCE (notification access) -->
+        <service
+            android:name=".service.MessageNotificationListener"
+            android:exported="true"
+            android:label="MYRA message announce"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService"/>
+            </intent-filter>
+        </service>
+
+        <!-- ACCESSIBILITY SERVICE -->
+        <service
+            android:name=".service.AccessibilityHelperService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config"/>
+        </service>
+
+        <!-- FOREGROUND VOICE SERVICE (Always Listening) -->
+        <service
+            android:name=".services.ForegroundVoiceService"
+            android:exported="false"
+            android:foregroundServiceType="microphone"/>
+
+        <!-- CALL MONITOR -->
+        <service
+            android:name=".service.CallMonitorService"
+            android:exported="false"
+            android:foregroundServiceType="phoneCall"/>
+
+        <!-- OVERLAY SERVICE -->
+        <service
+            android:name=".service.MyraOverlayService"
+            android:exported="false"
+            android:foregroundServiceType="microphone"/>
+
+        <!-- DEVICE ADMIN -->
+        <receiver
+            android:name=".service.MyraDeviceAdminReceiver"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin_receiver"/>
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED"/>
+            </intent-filter>
+        </receiver>
+
+        <!-- BOOT RECEIVER -->
+        <receiver
+            android:name=".service.BootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+            </intent-filter>
+        </receiver>
+
+        <!-- POWER BUTTON RECEIVER -->
+        <receiver
+            android:name=".service.PowerButtonReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.SCREEN_OFF"/>
+                <action android:name="android.intent.action.SCREEN_ON"/>
+            </intent-filter>
+        </receiver>
+
+    </application>
+
+</manifest>

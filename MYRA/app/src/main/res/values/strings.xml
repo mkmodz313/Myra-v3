@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MYRA</string>
+    <string name="app_tagline">AI COMPANION</string>
+    <string name="system_ready">SYSTEM READY</string>
+    <string name="listening">LISTENING…</string>
+    <string name="thinking">THINKING…</string>
+    <string name="speaking">SPEAKING…</string>
+    <string name="settings">Settings</string>
+    <string name="api_key_hint">Enter Gemini API Key</string>
+    <string name="save">SAVE SETTINGS</string>
+    <string name="accessibility_enabled">Accessibility: Active ✅</string>
+    <string name="accessibility_disabled">Accessibility: Disabled ⚠️</string>
+    <string name="long_press_stop">Hold to reconnect</string>
+    <string name="myra_full">M · Y · R · A</string>
+    <string name="wallpaper_description">MYRA video live wallpaper. Choose a wallpaper inside the MYRA app first.</string>
+</resources>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@android:color/transparent">
+
+    <!-- Orb container -->
+    <FrameLayout
+        android:id="@+id/orbContainer"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_margin="5dp"
+        android:background="@android:color/transparent">
+
+        <!-- Response glow ring — animates when MYRA is responding -->
+        <View
+            android:id="@+id/responseGlowRing"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_margin="2dp"
+            android:background="@drawable/bg_orb_glow"
+            android:alpha="0"
+            android:scaleX="0.85"
+            android:scaleY="0.85" />
+
+        <com.myra.assistant.ui.main.OrbAnimationView
+            android:id="@+id/overlayOrbView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <!-- Responding label — appears during response -->
+        <TextView
+            android:id="@+id/respondingLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="2dp"
+            android:text="● RESPONDING"
+            android:textColor="#FF1744"
+            android:textSize="8sp"
+            android:letterSpacing="0.2"
+            android:fontFamily="monospace"
+            android:alpha="0" />
+
+    </FrameLayout>
+
+    <!-- Close button -->
+    <ImageView
+        android:id="@+id/closeOverlayBtn"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_gravity="top|end"
+        android:src="@drawable/ic_close"
+        android:padding="4dp"
+        android:alpha="0.5"
+        android:background="@drawable/bg_circle_dark" />
+
+</FrameLayout>

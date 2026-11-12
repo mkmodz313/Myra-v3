@@ -1,0 +1,47 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Soft circular glow -->
+    <path
+        android:fillColor="#18FF4D88"
+        android:pathData="M12,2A10,10 0 1,1 2,12A10,10 0 0,1 12,2Z"/>
+
+    <!-- Outer biometric ring -->
+    <path
+        android:fillColor="#33FFFFFF"
+        android:pathData="M12,4A8,8 0 1,1 4,12A8,8 0 0,1 12,4Z"/>
+
+    <!-- Main fingerprint -->
+    <path
+        android:fillColor="#FFFA5D9D"
+        android:pathData="
+            M12,6
+            C9.7,6 8,7.7 8,10v2
+            c0,0.4 0.3,0.7 0.7,0.7
+            s0.7,-0.3 0.7,-0.7v-2
+            c0,-1.5 1,-2.6 2.6,-2.6
+            s2.6,1.1 2.6,2.6v3
+            c0,2 -1.6,3.6 -3.6,3.6
+            c-0.4,0 -0.7,0.3 -0.7,0.7
+            s0.3,0.7 0.7,0.7
+            c2.8,0 5,-2.2 5,-5v-3
+            C16,7.7 14.3,6 12,6Z"/>
+
+    <!-- Inner fingerprint line -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="
+            M12,8.8
+            c-0.9,0 -1.5,0.6 -1.5,1.5v1.8
+            c0,0.35 0.3,0.6 0.6,0.6
+            s0.6,-0.25 0.6,-0.6v-1.8
+            c0,-0.2 0.1,-0.3 0.3,-0.3
+            s0.3,0.1 0.3,0.3v2.8
+            c0,0.35 0.3,0.6 0.6,0.6
+            s0.6,-0.25 0.6,-0.6v-2.8
+            c0,-0.9 -0.6,-1.5 -1.5,-1.5Z"/>
+
+</vector>
