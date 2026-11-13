@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/dsRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#12001A">
+
+    <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:importantForAccessibility="no" android:scaleType="centerCrop" android:src="@drawable/myra_bg_scene"/>
+    <View android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/bg_chat_scrim"/>
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical">
+
+        <LinearLayout
+            android:id="@+id/dsHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_chat_header"
+            android:elevation="6dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="12dp">
+
+            <ImageButton android:id="@+id/dsBack" android:layout_width="44dp" android:layout_height="44dp" android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="Back" android:padding="10dp" android:scaleType="fitCenter" android:src="@drawable/ic_arrow_back"/>
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:layout_weight="1" android:fontFamily="sans-serif-medium" android:shadowColor="#FFFF2BD6" android:shadowDx="0" android:shadowDy="0" android:shadowRadius="12" android:text="🎨 Premium Designs" android:textColor="#FFFFFFFF" android:textSize="22sp"/>
+        </LinearLayout>
+
+        <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:scrollbars="none">
+            <LinearLayout android:id="@+id/dsChips" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingStart="14dp" android:paddingEnd="14dp"/>
+        </HorizontalScrollView>
+
+        <Button
+            android:id="@+id/dsOpenBox"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:layout_marginStart="14dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginEnd="14dp"
+            android:background="@drawable/bg_save_button"
+            android:fontFamily="sans-serif-medium"
+            android:stateListAnimator="@null"
+            android:text="📱 Apps Box kholein (current design)"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFFFF"
+            android:textSize="15sp"/>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/dsGrid"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:padding="10dp"
+            android:scrollbars="none"/>
+    </LinearLayout>
+</FrameLayout>

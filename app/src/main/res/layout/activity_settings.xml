@@ -799,6 +799,35 @@
             android:background="@drawable/bg_save_button"
             android:layout_marginBottom="32dp" />
 
+        <!-- Premium Designs -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@android:color/transparent"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="0dp">
+
+            <LinearLayout
+                android:id="@+id/designsCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_card_3d"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="20dp">
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🎨" android:textSize="26sp"/>
+
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="14dp" android:layout_weight="1" android:orientation="vertical">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-medium" android:text="Premium Designs (Android / iOS)" android:textColor="#FFFFA6EE" android:textSize="15sp"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="26 premium app-box designs, ek tap par apply" android:textColor="#FFCFA6D6" android:textSize="11sp"/>
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
         <!-- Admin Panel (very bottom of Settings) -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"

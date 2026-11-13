@@ -39,3 +39,4 @@
 - Calls: CallControl (answer / end / speaker), answer_call + end_call voice tools, "phone pe baat karo" talk mode in CallAssistantActivity
 - Default Gemini key is NOT in source anymore: injected at build time from GEMINI_DEFAULT_KEY
   (GitHub Actions secret, environment variable, or local.properties:  GEMINI_DEFAULT_KEY=your_key)
+- design/: Premium Designs (26 Android / iOS / Premium looks) + Apps Box launcher-style screen (search, voice search, dock); Settings -> Premium Designs

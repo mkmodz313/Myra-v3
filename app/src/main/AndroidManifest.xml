@@ -127,6 +127,17 @@
             android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize"/>
 
+        <!-- PREMIUM DESIGNS (Android / iOS / Premium launcher looks) -->
+        <activity
+            android:name=".design.DesignsActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"/>
+        <activity
+            android:name=".design.AppsBoxActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustPan"/>
+
         <!-- LIVE WALLPAPERS -->
         <activity
             android:name=".wallpaper.WallpaperActivity"
