@@ -47,7 +47,7 @@ class CharacterView @JvmOverloads constructor(
         val EYE_L = floatArrayOf(0.4206f, 0.1672f, 0.0290f, -12f)
         val EYE_R = floatArrayOf(0.5118f, 0.1483f, 0.0240f, -22f)
         // mouth: cx, cy (lip line), half-width (fraction of width), tilt of the lip line (deg)
-        val MOUTH = floatArrayOf(0.4963f, 0.2026f, 0.0309f, -21f)
+        val MOUTH = floatArrayOf(0.4895f, 0.1982f, 0.0330f, -21f)
 
         const val COLS = 28
         const val ROWS = 48
