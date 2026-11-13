@@ -18,7 +18,7 @@ import java.util.Locale
 sealed class ChatRow {
     abstract val rowId: Long
     data class Message(val msg: ChatRepository.Msg) : ChatRow() { override val rowId get() = msg.id }
-    data class DateHeader(val label: String, val day: Long) : ChatRow() { override val rowId get() = -2L - day }
+    data class DateHeader(val label: String, val day: Long) : ChatRow() { override val rowId get() = -1_000_000_000L - day }
     object Typing : ChatRow() { override val rowId get() = -1L }
 }
 
@@ -31,7 +31,7 @@ class ChatMessagesAdapter : ListAdapter<ChatRow, RecyclerView.ViewHolder>(DIFF) 
         private const val T_DATE = 3
 
         private val DIFF = object : DiffUtil.ItemCallback<ChatRow>() {
-            override fun areItemsTheSame(a: ChatRow, b: ChatRow) = a.rowId == b.rowId
+            override fun areItemsTheSame(a: ChatRow, b: ChatRow) = a::class == b::class && a.rowId == b.rowId
             override fun areContentsTheSame(a: ChatRow, b: ChatRow) = a == b
         }
     }
@@ -94,6 +94,15 @@ class ChatMessagesAdapter : ListAdapter<ChatRow, RecyclerView.ViewHolder>(DIFF) 
 
     override fun onViewDetachedFromWindow(holder: RecyclerView.ViewHolder) {
         (holder as? TypingHolder)?.stop()
+    }
+
+    override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
+        // a running entry animation must never outlive the row it belongs to
+        holder.itemView.animate().cancel()
+        holder.itemView.alpha = 1f
+        holder.itemView.translationY = 0f
+        (holder as? TypingHolder)?.stop()
+        super.onViewRecycled(holder)
     }
 
     class MsgHolder(v: View, user: Boolean) : RecyclerView.ViewHolder(v) {

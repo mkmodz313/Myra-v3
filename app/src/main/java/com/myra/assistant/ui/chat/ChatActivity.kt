@@ -78,9 +78,11 @@ class ChatActivity : AppCompatActivity() {
         fx = findViewById(R.id.chatFx)
         emojiPanel = findViewById(R.id.emojiPanel)
 
-        list.layoutManager = LinearLayoutManager(this).also { it.stackFromEnd = true }
+        list.layoutManager = SafeLinearLayoutManager(this).also { it.stackFromEnd = true }
         list.adapter = adapter
-        list.itemAnimator?.changeDuration = 0   // streaming text updates must not flicker
+        // No RecyclerView item animator: together with the streaming text updates it causes
+        // "Called attach on a child which is not detached". Rows fade in via the adapter instead.
+        list.itemAnimator = null
 
         com.myra.assistant.ui.NetworkBanner.attach(this)
         setupInsets()
@@ -233,7 +235,24 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun scrollToEnd() {
-        if (adapter.itemCount > 0) list.smoothScrollToPosition(adapter.itemCount - 1)
+        // post + plain scroll: never start a smooth scroller while the list is still laying out
+        list.post {
+            if (!isDestroyed && adapter.itemCount > 0) list.scrollToPosition(adapter.itemCount - 1)
+        }
+    }
+
+    /** Safety net: a rare RecyclerView inconsistency must not take the whole app down. */
+    private class SafeLinearLayoutManager(ctx: android.content.Context) : LinearLayoutManager(ctx) {
+        override fun onLayoutChildren(recycler: RecyclerView.Recycler?, state: RecyclerView.State?) {
+            try {
+                super.onLayoutChildren(recycler, state)
+            } catch (e: IndexOutOfBoundsException) {
+                com.myra.assistant.utils.Logger.e("CHAT", "layout skipped: ${e.message}")
+            } catch (e: IllegalArgumentException) {
+                com.myra.assistant.utils.Logger.e("CHAT", "layout skipped: ${e.message}")
+            }
+        }
+        override fun supportsPredictiveItemAnimations() = false
     }
 
     override fun onResume() {
