@@ -41,6 +41,36 @@ class ForegroundVoiceService : Service() {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.IO + job + kotlinx.coroutines.CoroutineExceptionHandler { _, e -> Logger.e(TAG, "coroutine error: ${e.message}") })
 
+    // Everything slow that is NOT audio (transcripts, chat, commands) runs here, in order, so the network
+    // reader thread only ever moves voice data and a busy UI / disk can never make the voice stutter.
+    private val worker = java.util.concurrent.Executors.newSingleThreadExecutor { r -> Thread(r, "MYRA_Worker").apply { isDaemon = true } }
+    private fun bg(block: () -> Unit) {
+        try { worker.execute { try { block() } catch (e: Throwable) { Logger.e(TAG, "worker: ${e.message}") } } } catch (_: Exception) {}
+    }
+
+    // keep CPU + Wi-Fi radio awake for the whole voice session (Wi-Fi power-save = delayed / jittery packets)
+    private var wakeLock: android.os.PowerManager.WakeLock? = null
+    private var wifiLock: android.net.wifi.WifiManager.WifiLock? = null
+    private fun acquireLocks() {
+        try {
+            val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            wakeLock = pm.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "myra:voice").apply {
+                setReferenceCounted(false); acquire(6 * 60 * 60 * 1000L)
+            }
+        } catch (e: Throwable) { Logger.e(TAG, "wakelock: ${e.message}") }
+        try {
+            val wm = applicationContext.getSystemService(Context.WIFI_SERVICE) as android.net.wifi.WifiManager
+            val mode = if (android.os.Build.VERSION.SDK_INT >= 29) android.net.wifi.WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+                       else @Suppress("DEPRECATION") android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF
+            wifiLock = wm.createWifiLock(mode, "myra:voice").apply { setReferenceCounted(false); acquire() }
+        } catch (e: Throwable) { Logger.e(TAG, "wifilock: ${e.message}") }
+    }
+    private fun releaseLocks() {
+        try { wakeLock?.takeIf { it.isHeld }?.release() } catch (_: Throwable) {}
+        try { wifiLock?.takeIf { it.isHeld }?.release() } catch (_: Throwable) {}
+        wakeLock = null; wifiLock = null
+    }
+
     private lateinit var audioRecorder: AudioRecorder
     private lateinit var audioPlayer: AudioPlayer
     private lateinit var vad: VoiceActivityDetector
@@ -79,6 +109,7 @@ class ForegroundVoiceService : Service() {
         }
         ChatRepository.init(applicationContext)
         initComponents()
+        acquireLocks()
         registerNetworkWatcher()
     }
 
@@ -137,7 +168,7 @@ class ForegroundVoiceService : Service() {
                 // Streaming playback: every chunk goes straight to the player as soon as it arrives.
                 audioPlayer.playChunk(data)
             },
-            onTextReceived = { text ->
+            onTextReceived = { text -> bg {
                 val clean = AIResponseManager.clean(text)
                 if (clean.isNotBlank()) {
                     ConversationMemory.addAssistant(clean)
@@ -153,15 +184,15 @@ class ForegroundVoiceService : Service() {
                     // Broadcast to UI
                     sendBroadcast(Intent("MYRA_RESPONSE").setPackage(packageName).putExtra("text", clean))
                 }
-            },
-            onTurnComplete = {
+            } },
+            onTurnComplete = { bg {
                 finishTurn()
                 // Resume listening after AI finishes
                 if (!audioRecorder.isActive()) audioRecorder.start()
-            },
+            } },
             onError = { msg -> scheduleReconnect(msg) },
-            onInputTranscription = { t -> onUserTranscript(t) },
-            onOutputTranscription = { t -> onAssistantTranscript(t) },
+            onInputTranscription = { t -> bg { onUserTranscript(t) } },
+            onOutputTranscription = { t -> bg { onAssistantTranscript(t) } },
             onInterrupted = { audioPlayer.dropPending() },
             onGoAway = { scheduleReconnect("server goAway") },
             onToolCall = { id, name, args ->
@@ -383,6 +414,8 @@ ${girlfriendPrompt()}
         audioRecorder.stop()
         audioPlayer.release()
         geminiClient?.disconnect()
+        releaseLocks()
+        try { worker.shutdown() } catch (_: Throwable) {}
         job.cancel()
         super.onDestroy()
     }

@@ -10,7 +10,17 @@ object VoiceStateManager {
     val amplitude = MutableLiveData(0f)
     val isMicMuted = MutableLiveData(false)
 
+    // Read by the mic thread: must change instantly (LiveData.postValue lags a frame behind).
+    @Volatile private var speakingNow = false
+    @Volatile private var micResumeAt = 0L
+    private const val MIC_TAIL_MS = 220L   // room echo of the last syllable must fade before the mic re-opens
+
+    private fun leaveSpeaking() {
+        if (speakingNow) { speakingNow = false; micResumeAt = System.currentTimeMillis() + MIC_TAIL_MS }
+    }
+
     fun setListening() {
+        leaveSpeaking()
         state.postValue(Constants.STATE_LISTENING)
         statusMessage.postValue("LISTENING...")
         isMicMuted.postValue(false)
@@ -22,12 +32,14 @@ object VoiceStateManager {
     }
 
     fun setSpeaking() {
+        speakingNow = true
         state.postValue(Constants.STATE_SPEAKING)
         statusMessage.postValue("SPEAKING...")
         isMicMuted.postValue(true)
     }
 
     fun setIdle() {
+        leaveSpeaking()
         state.postValue(Constants.STATE_IDLE)
         statusMessage.postValue("SYSTEM READY")
         isMicMuted.postValue(false)
@@ -35,6 +47,7 @@ object VoiceStateManager {
     }
 
     fun setError(msg: String) {
+        leaveSpeaking()
         state.postValue(Constants.STATE_IDLE)
         statusMessage.postValue(msg)
     }
@@ -43,7 +56,7 @@ object VoiceStateManager {
         amplitude.postValue(rms.coerceIn(0f, 1f))
     }
 
-    fun isAiSpeaking() = state.value == Constants.STATE_SPEAKING
+    fun isAiSpeaking() = speakingNow || System.currentTimeMillis() < micResumeAt
 
     fun isListening() = state.value == Constants.STATE_LISTENING
 }

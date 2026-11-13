@@ -12,6 +12,9 @@ import java.util.concurrent.TimeUnit
 class AudioPlayer {
     private val TAG = "PLAYER"
     private val SAMPLE_RATE = Constants.SAMPLE_RATE_OUT
+    private val PRIME_MS = 70            // audio collected before a reply starts playing
+    private val PRIME_MAX_WAIT_MS = 120L // never wait longer than this for it
+    private val FINISH_GAP_MS = 300L     // silence from the server that really means "reply finished"
 
     private var audioTrack: AudioTrack? = null
     private val queue = LinkedBlockingQueue<ByteArray>()
@@ -53,7 +56,7 @@ class AudioPlayer {
                 )
                 .setBufferSizeInBytes(minBuf * 4)
                 .setTransferMode(AudioTrack.MODE_STREAM)
-                .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
+                .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_NONE)
                 .build()
         } else {
             @Suppress("DEPRECATION")
@@ -82,36 +85,55 @@ class AudioPlayer {
         }
     }
 
+    private fun writeChunk(chunk: ByteArray) {
+        try {
+            val start = framesWritten
+            framesWritten += chunk.size / 2
+            // Speaker first (never let analysis delay the audio), then the lip-sync analyser with the same PCM.
+            audioTrack?.write(chunk, 0, chunk.size)
+            LipSyncBus.onPcm(chunk, start)
+        } catch (e: Exception) {
+            Logger.e(TAG, "Write error: ${e.message}")
+        }
+    }
+
     private fun startPlayThread() {
         playThread = Thread {
+            // Real-time audio priority: the busy UI (character animation) must never starve the speaker.
+            try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO) } catch (_: Throwable) {}
+            val primeBytes = SAMPLE_RATE * 2 * PRIME_MS / 1000      // 16-bit mono
             var wasPlaying = false
             var lastChunkAt = 0L
-            while (!Thread.interrupted()) {
-                // Blocking poll: a chunk is picked up the instant it arrives (no 10 ms sleep granularity).
-                val chunk = try {
-                    queue.poll(15, TimeUnit.MILLISECONDS)
-                } catch (e: InterruptedException) {
-                    break
-                }
-                if (chunk != null) {
-                    lastChunkAt = System.currentTimeMillis()
-                    if (!wasPlaying) {
-                        wasPlaying = true
-                        VoiceStateManager.setSpeaking()
-                        onPlaybackStarted?.invoke()
+            try {
+                while (!Thread.interrupted()) {
+                    val chunk = queue.poll(15, TimeUnit.MILLISECONDS)
+                    if (chunk != null) {
+                        if (!wasPlaying) {
+                            // Start of a reply: collect a few tens of ms first, so network jitter in the first
+                            // chunks cannot leave gaps (crackle) in the voice.
+                            val buf = java.io.ByteArrayOutputStream()
+                            buf.write(chunk)
+                            val t0 = System.currentTimeMillis()
+                            while (buf.size() < primeBytes && System.currentTimeMillis() - t0 < PRIME_MAX_WAIT_MS) {
+                                val more = queue.poll(8, TimeUnit.MILLISECONDS) ?: continue
+                                buf.write(more)
+                            }
+                            wasPlaying = true
+                            VoiceStateManager.setSpeaking()
+                            onPlaybackStarted?.invoke()
+                            writeChunk(buf.toByteArray())
+                        } else {
+                            writeChunk(chunk)
+                        }
+                        lastChunkAt = System.currentTimeMillis()
+                    } else if (wasPlaying && System.currentTimeMillis() - lastChunkAt > FINISH_GAP_MS) {
+                        // Only a real end of the reply counts. A short network hiccup must NOT re-open the
+                        // microphone (it would hear MYRA's own voice, trigger an interruption and cut the speech).
+                        wasPlaying = false
+                        onPlaybackFinished?.invoke()
                     }
-                    try {
-                        // Feed the very same PCM to the lip-sync analyser (cheap, never throws).
-                        LipSyncBus.onPcm(chunk, framesWritten)
-                        framesWritten += chunk.size / 2
-                        audioTrack?.write(chunk, 0, chunk.size)
-                    } catch (e: Exception) {
-                        Logger.e(TAG, "Write error: ${e.message}")
-                    }
-                } else if (wasPlaying && System.currentTimeMillis() - lastChunkAt > 60) {
-                    wasPlaying = false
-                    onPlaybackFinished?.invoke()
                 }
+            } catch (_: InterruptedException) {
             }
         }.also {
             it.name = "MYRA_PlayThread"

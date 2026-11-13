@@ -165,7 +165,7 @@ class GeminiWebSocketClient(
                     .put("startOfSpeechSensitivity", "START_SENSITIVITY_HIGH")
                     .put("endOfSpeechSensitivity", "END_SENSITIVITY_HIGH")
                     .put("prefixPaddingMs", 20)
-                    .put("silenceDurationMs", 250)))
+                    .put("silenceDurationMs", 350)))
                 if (toolsEnabled && onToolCall != null) put("tools", buildTools())
                 if (extrasEnabled) {
                     put("inputAudioTranscription", JSONObject())
