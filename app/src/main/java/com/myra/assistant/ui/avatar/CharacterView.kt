@@ -4,6 +4,9 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Camera
+import android.graphics.LinearGradient
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
@@ -89,6 +92,18 @@ class CharacterView @JvmOverloads constructor(
     private var t = 0f
     private var voice = 0f
     private var mouth = 0f
+    private var shape = 0f          // smoothed vowel shape: -1 rounded (oo/oh) .. +1 spread (ee)
+
+    // mouth interior look (unit gradients, scaled to the real gap height every frame)
+    private val inner = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val shaderM = Matrix()
+    private val interiorShader = LinearGradient(0f, 0f, 0f, 1f,
+        intArrayOf(Color.rgb(38, 4, 12), Color.rgb(92, 20, 36), Color.rgb(150, 54, 66)),
+        floatArrayOf(0f, 0.42f, 1f), Shader.TileMode.CLAMP)
+    private val teethShader = LinearGradient(0f, 0f, 0f, 1f,
+        intArrayOf(Color.rgb(252, 247, 241), Color.rgb(238, 224, 216)), null, Shader.TileMode.CLAMP)
+    private val shadeShader = LinearGradient(0f, 0f, 0f, 1f,
+        intArrayOf(Color.argb(120, 28, 3, 10), Color.argb(0, 28, 3, 10)), null, Shader.TileMode.CLAMP)
 
     private var blink = 0f
     private var nextBlinkAt = 1.5f
@@ -183,6 +198,14 @@ class CharacterView @JvmOverloads constructor(
         mx.postRotate(-MOUTH[3])
         mx.postTranslate(pw / 2f, 0f)
         c.drawBitmap(bmp, mx, bmpPaint)
+        // feather the very top rows: the old lip-crease line melts into the mouth interior instead of
+        // showing up as a second hard lip line under the gap
+        val fade = half * 0.09f
+        val fp = Paint().apply {
+            shader = LinearGradient(0f, 0f, 0f, fade, Color.argb(40, 0, 0, 0), Color.BLACK, Shader.TileMode.CLAMP)
+            xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
+        }
+        c.drawRect(0f, 0f, pw.toFloat(), fade, fp)
         lowerPatch = patch
         var k = 0
         for (j in 0..M_ROWS) for (i in 0..M_COLS) {
@@ -211,6 +234,8 @@ class CharacterView @JvmOverloads constructor(
         val speaking = mode == AvatarMode.SPEAKING && LipSyncBus.sample(tmp)
         val mouthTarget = if (speaking) tmp[0].coerceIn(0f, 1f) else 0f
         mouth += (mouthTarget - mouth) * min(1f, dt * (if (mouthTarget > mouth) 30f else 14f))
+        val shapeTarget = if (speaking) tmp[1].coerceIn(-1f, 1f) else 0f
+        shape += (shapeTarget - shape) * min(1f, dt * 10f)
         val target = if (speaking) tmp[0] else if (mode == AvatarMode.LISTENING) micLevel * 0.6f else 0f
         voice += (target - voice) * min(1f, dt * 14f)
 
@@ -377,33 +402,59 @@ class CharacterView @JvmOverloads constructor(
         if (mouth < 0.04f) return
         val bw = bmp.width.toFloat(); val bh = bmp.height.toFloat()
         val half = patchHalf
-        val open = mouth * 0.50f * half                      // jaw drop in bitmap pixels
-        val reach = half * 1.12f
+        // natural speech opens the jaw only moderately; rounded vowels (oo/oh) open a bit less and narrow
+        val open = (mouth * 0.44f * half) * (1f - 0.18f * max(0f, -shape))
+        val reach = half * (1.06f + 0.07f * shape)
+        val lift = min(half * 0.035f, open * 0.5f)           // hides the old lip crease above the lip line
         c.save()
         c.translate(MOUTH[0] * bw, MOUTH[1] * bh)
         c.rotate(MOUTH[3])
 
-        // 1) the opening between the lips: lens shaped, upper edge = lip line, lower edge = moved lower lip
-        val n = 24
+        // 1) the opening between the lips: soft lens, upper edge = lip line, lower edge = moved lower lip
+        val n = 28
         path.reset()
         path.moveTo(-reach, 0f)
-        path.lineTo(reach, 0f)
-        for (i in n downTo 0) {
+        for (i in 0..n) {                                    // upper edge (slightly above the lip line)
             val u = -reach + 2f * reach * i / n
-            val q = 1f - (u / reach) * (u / reach)
-            path.lineTo(u, open * q.coerceAtLeast(0f))
+            val q = (1f - (u / reach) * (u / reach)).coerceAtLeast(0f)
+            path.lineTo(u, -lift * q)
+        }
+        for (i in n downTo 0) {                              // lower edge (follows the jaw)
+            val u = -reach + 2f * reach * i / n
+            val q = (1f - (u / reach) * (u / reach)).coerceAtLeast(0f)
+            path.lineTo(u, open * q)
         }
         path.close()
-        fill.color = Color.rgb(88, 16, 34)
-        c.drawPath(path, fill)
-        if (open > half * 0.18f) {                           // upper teeth just under the upper lip
-            c.save()
-            c.clipPath(path)
-            fill.color = Color.rgb(248, 242, 238)
-            rect.set(-reach * 0.62f, -open * 0.2f, reach * 0.62f, open * 0.42f)
-            c.drawRoundRect(rect, open * 0.3f, open * 0.3f, fill)
-            c.restore()
+
+        c.save()
+        c.clipPath(path)
+        // dark, deep mouth interior (lighter towards the bottom where the tongue is)
+        shaderM.setScale(1f, max(open + lift, 1f)); shaderM.postTranslate(0f, -lift)
+        interiorShader.setLocalMatrix(shaderM)
+        inner.shader = interiorShader
+        c.drawRect(-reach, -lift - 1f, reach, open + 1f, inner)
+
+        if (open > half * 0.14f) {
+            // tongue hint
+            inner.shader = null
+            inner.color = Color.argb(215, 196, 88, 100)
+            rect.set(-reach * 0.40f, open * 0.58f, reach * 0.40f, open * 1.25f)
+            c.drawOval(rect, inner)
+            // upper teeth, slightly curved, shaded towards the gum line
+            val th = open * 0.36f
+            shaderM.setScale(1f, max(th, 1f)); shaderM.postTranslate(0f, -lift * 0.2f)
+            teethShader.setLocalMatrix(shaderM)
+            inner.shader = teethShader
+            rect.set(-reach * 0.50f, -lift * 0.3f - th * 0.4f, reach * 0.50f, th)   // top part hides under the upper lip
+            c.drawRoundRect(rect, th * 0.9f, th * 0.9f, inner)
         }
+        // shadow cast by the upper lip into the mouth: gives depth instead of a flat dark shape
+        shaderM.setScale(1f, max(open * 0.55f, 1f)); shaderM.postTranslate(0f, -lift)
+        shadeShader.setLocalMatrix(shaderM)
+        inner.shader = shadeShader
+        c.drawRect(-reach, -lift - 1f, reach, open * 0.55f, inner)
+        inner.shader = null
+        c.restore()
 
         // 2) lower lip + chin, moved down (top edge by the full jaw drop, fading to nothing towards the chin)
         var k = 0

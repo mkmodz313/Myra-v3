@@ -16,7 +16,7 @@ class AudioRecorder(
 ) {
     private val TAG = "RECORDER"
     private val SAMPLE_RATE = 16000
-    private val CHUNK_SIZE = 1024  // ~64ms at 16kHz
+    private val CHUNK_SIZE = 640   // 20 ms at 16 kHz mono 16-bit: smaller chunks reach the server sooner
 
     private var audioRecord: AudioRecord? = null
     private var recordThread: Thread? = null
