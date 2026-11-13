@@ -12,8 +12,8 @@ import java.util.concurrent.TimeUnit
 class AudioPlayer {
     private val TAG = "PLAYER"
     private val SAMPLE_RATE = Constants.SAMPLE_RATE_OUT
-    private val PRIME_MS = 30            // audio collected before a reply starts playing
-    private val PRIME_MAX_WAIT_MS = 50L // never wait longer than this for it
+    private val PRIME_MS = 70            // audio collected before a reply starts playing
+    private val PRIME_MAX_WAIT_MS = 120L // never wait longer than this for it
     private val FINISH_GAP_MS = 300L     // silence from the server that really means "reply finished"
 
     private var audioTrack: AudioTrack? = null
@@ -56,7 +56,7 @@ class AudioPlayer {
                 )
                 .setBufferSizeInBytes(minBuf * 4)
                 .setTransferMode(AudioTrack.MODE_STREAM)
-                .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
+                .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_NONE)
                 .build()
         } else {
             @Suppress("DEPRECATION")
@@ -137,7 +137,6 @@ class AudioPlayer {
                   } catch (e: InterruptedException) {
                       throw e
                   } catch (e: Throwable) {
-                      // never let this thread die: a dead player = mic blocked + no voice
                       Logger.e(TAG, "play loop: ${e.message}")
                       wasPlaying = false
                       VoiceStateManager.setListening()

@@ -82,6 +82,7 @@ class ForegroundVoiceService : Service() {
     private var backoffMs = 1000L
     private var lastConnectAt = 0L
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
+    private var lastNetwork: Network? = null
 
     // live transcript state for the current turn (voice -> chat)
     private val userTranscript = StringBuilder()
@@ -245,6 +246,19 @@ class ForegroundVoiceService : Service() {
             val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             val cb = object : ConnectivityManager.NetworkCallback() {
                 override fun onAvailable(network: Network) {
+                    val switched = lastNetwork != null && lastNetwork != network
+                    lastNetwork = network
+                    if (switched) {
+                        // Wi-Fi <-> mobile data: the old socket is dead; reconnect at once (conversation is resumed)
+                        reconnectJob?.cancel()
+                        backoffMs = 1000L
+                        scope.launch {
+                            delay(500)
+                            val key = ApiKeys.gemini(applicationContext)
+                            if (key.isNotEmpty()) connectGemini(key)
+                        }
+                        return
+                    }
                     val connected = geminiClient?.isConnected() == true
                     val justTried = System.currentTimeMillis() - lastConnectAt < 4000
                     if (!connected && !justTried) {

@@ -39,7 +39,11 @@ class GeminiWebSocketClient(
         private val sharedClient: OkHttpClient = OkHttpClient.Builder()
             .readTimeout(0, TimeUnit.MILLISECONDS)
             .connectTimeout(10, TimeUnit.SECONDS)
-            .pingInterval(20, TimeUnit.SECONDS)
+            .dns(object : Dns {   // IPv4 first: some mobile networks have a broken IPv6 route (slow / failed connects)
+                override fun lookup(hostname: String): List<java.net.InetAddress> =
+                    Dns.SYSTEM.lookup(hostname).sortedBy { if (it is java.net.Inet4Address) 0 else 1 }
+            })
+            .pingInterval(10, TimeUnit.SECONDS)   // a dead connection is noticed in ~10 s
             .retryOnConnectionFailure(true)
             .build()
 
@@ -164,8 +168,8 @@ class GeminiWebSocketClient(
                 if (vadTuning) put("realtimeInputConfig", JSONObject().put("automaticActivityDetection", JSONObject()
                     .put("startOfSpeechSensitivity", "START_SENSITIVITY_HIGH")
                     .put("endOfSpeechSensitivity", "END_SENSITIVITY_HIGH")
-                    .put("prefixPaddingMs", 40)
-                    .put("silenceDurationMs", 300)))
+                    .put("prefixPaddingMs", 20)
+                    .put("silenceDurationMs", 350)))
                 if (toolsEnabled && onToolCall != null) put("tools", buildTools())
                 if (extrasEnabled) {
                     put("inputAudioTranscription", JSONObject())

@@ -13,12 +13,10 @@ object VoiceStateManager {
     // Read by the mic thread: must change instantly (LiveData.postValue lags a frame behind).
     @Volatile private var speakingNow = false
     @Volatile private var micResumeAt = 0L
-    // Watchdog: "speaking" only counts while audio is really being played. If the player dies or the
-    // reply stops, the mic re-opens by itself instead of staying blocked forever (= no reply to voice).
-    @Volatile private var lastAudioAt = 0L
-    private const val SPEAK_STALE_MS = 1500L
+    @Volatile private var lastAudioAt = 0L           // watchdog: "speaking" only counts while audio keeps arriving
+    private const val SPEAK_STALE_MS = 3000L
     fun noteAudio() { lastAudioAt = System.currentTimeMillis() }
-    private const val MIC_TAIL_MS = 120L   // room echo of the last syllable must fade before the mic re-opens
+    private const val MIC_TAIL_MS = 220L   // room echo of the last syllable must fade before the mic re-opens
 
     private fun leaveSpeaking() {
         if (speakingNow) { speakingNow = false; micResumeAt = System.currentTimeMillis() + MIC_TAIL_MS }

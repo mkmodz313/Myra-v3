@@ -69,3 +69,8 @@
 - voice/AudioRecorder.kt: mic init check, auto-restart on read errors
 - services/ForegroundVoiceService.kt: tool calls always answered (12 s timeout), mic retry
 - websocket/GeminiWebSocketClient.kt: faster end-of-speech (300 ms, HIGH)
+
+## v3: voice restored to original audio code + safe fixes
+- AudioRecorder / AudioPlayer sound settings / server VAD values: back to the original (working) versions
+- Kept only logic-safe protections: mic watchdog, play thread never dies, tool call always answered (12 s), mic retry
+- Network: IPv4-first DNS, ping 10 s, instant reconnect when Wi-Fi <-> mobile data switches
