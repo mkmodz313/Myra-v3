@@ -57,3 +57,8 @@
 - myra_avatar_thumb.png: face of the new character (512 px)
 
 - utils/LiveAudioManager.kt: AudioPlaybackThread no longer throws InterruptedException when stop() interrupts it (normal shutdown is now handled quietly)
+
+## Character v3
+- CharacterView: character is now completely fixed on screen (no left/right/up/down drift); only commanded actions move it
+- Hair: wind animation (gusts push the curls left and right, face stays still)
+- Mouth: the picture's own lower lip + chin move down with the voice (mesh warp) with a dark mouth interior + teeth, instead of the pasted-on oval

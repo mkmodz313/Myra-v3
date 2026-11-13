@@ -8,6 +8,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.RadialGradient
 import android.graphics.RectF
 import android.graphics.Shader
@@ -18,22 +19,20 @@ import com.myra.assistant.utils.Logger
 import com.myra.assistant.voice.LipSyncBus
 import kotlin.math.PI
 import kotlin.math.abs
-import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
 import kotlin.random.Random
 
 /**
- * MYRA's 3D character, shown from head to mid-thigh (cut at the bottom edge of the screen) so the face is
- * big and close. Source is a transparent 4K image, decoded only at the size the screen needs.
+ * MYRA's 3D character, head to mid-thigh, FIXED on the screen (no drifting left/right/up/down).
  *
- * Animation (all drawn live, nothing pre-rendered):
- *  - eyes: natural random blinking (double blinks sometimes), eyelids drawn in the skin colour
- *  - mouth: opens with the real voice level of MYRA (LipSyncBus) while she speaks
- *  - hair / sleeve: soft wave using a mesh warp (face stays still), stronger while speaking / dancing
- *  - body: breathing, listening lean, thinking tilt, and commanded actions from [CharacterActionBus]
- *    (dance, spin, jump, wave, bow, sway)
+ *  - mouth: the lower lip + chin of the character picture itself move down with MYRA's real voice
+ *    (LipSyncBus), a dark mouth interior and teeth appear in the gap (no pasted-on shape)
+ *  - hair: wind animation (gusts blow the long curls left and right), face stays still
+ *  - eyes: natural random blinking
+ *  - body: completely still. Only when the user explicitly commands dance / spin / jump / wave / bow /
+ *    sway does it move, and it returns to the exact same fixed spot afterwards.
  */
 class CharacterView @JvmOverloads constructor(
     context: Context,
@@ -43,28 +42,36 @@ class CharacterView @JvmOverloads constructor(
     private companion object {
         const val TAG = "CHARACTER"
 
-        // Face landmarks as fractions of the (cropped) character image: x / width, y / height.
+        // Face landmarks as fractions of the cropped character image: x / width, y / height.
         // eye: cx, cy, half-width (fraction of width), tilt (deg)
         val EYE_L = floatArrayOf(0.4206f, 0.1672f, 0.0290f, -12f)
         val EYE_R = floatArrayOf(0.5118f, 0.1483f, 0.0240f, -22f)
-        // mouth: cx, cy, half-width (fraction of width), tilt (deg)
+        // mouth: cx, cy (lip line), half-width (fraction of width), tilt of the lip line (deg)
         val MOUTH = floatArrayOf(0.4963f, 0.2026f, 0.0309f, -21f)
 
-        const val COLS = 20
-        const val ROWS = 36
+        const val COLS = 28
+        const val ROWS = 48
+        const val M_COLS = 20
+        const val M_ROWS = 8
     }
 
     private var bitmap: Bitmap? = null
     private var loadedForHeight = 0
     private var skinL = Color.rgb(240, 190, 175)
     private var skinR = Color.rgb(240, 190, 175)
-    private var lipColor = Color.rgb(215, 90, 105)
+
+    // lower lip + chin, cut out in the lip-line frame (axis aligned) so it can be warped downwards
+    private var lowerPatch: Bitmap? = null
+    private var patchHalf = 0f      // mouth half width in bitmap pixels
+    private var patchW = 0f
+    private var patchH = 0f
 
     private val bmpPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG or Paint.DITHER_FLAG)
     private val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
     private val rect = RectF()
+    private val path = Path()
     private val m = Matrix()
     private val cam = Camera()
     private val camM = Matrix()
@@ -72,6 +79,8 @@ class CharacterView @JvmOverloads constructor(
 
     private val orig = FloatArray((COLS + 1) * (ROWS + 1) * 2)
     private val warped = FloatArray(orig.size)
+    private val mOrig = FloatArray((M_COLS + 1) * (M_ROWS + 1) * 2)
+    private val mWarped = FloatArray(mOrig.size)
 
     private var mode = AvatarMode.IDLE
     private var micLevel = 0f
@@ -80,7 +89,6 @@ class CharacterView @JvmOverloads constructor(
     private var t = 0f
     private var voice = 0f
     private var mouth = 0f
-    private var speaking = false
 
     private var blink = 0f
     private var nextBlinkAt = 1.5f
@@ -149,17 +157,37 @@ class CharacterView @JvmOverloads constructor(
             bitmap = bmp
             loadedForHeight = viewH
             val bw = bmp.width; val bh = bmp.height
-            // build the warp grid
             var k = 0
             for (j in 0..ROWS) for (i in 0..COLS) {
                 orig[k++] = bw * i / COLS.toFloat(); orig[k++] = bh * j / ROWS.toFloat()
             }
-            // sample real skin / lip colours so the eyelids and lip rim match this picture
             skinL = sampleColor(bmp, EYE_L[0], EYE_L[1] + 0.028f)
             skinR = sampleColor(bmp, EYE_R[0], EYE_R[1] + 0.026f)
-            lipColor = sampleColor(bmp, MOUTH[0], MOUTH[1] + 0.006f)
+            buildLowerPatch(bmp)
         } catch (e: Throwable) {
             Logger.e(TAG, "character decode failed: ${e.message}")
+        }
+    }
+
+    /** Cut the lower lip + chin out of the picture, rotated so the lip line is horizontal. */
+    private fun buildLowerPatch(bmp: Bitmap) {
+        val half = MOUTH[2] * bmp.width
+        patchHalf = half
+        patchW = half * 3.6f
+        patchH = half * 2.1f
+        val pw = patchW.toInt().coerceAtLeast(8); val ph = patchH.toInt().coerceAtLeast(8)
+        val patch = Bitmap.createBitmap(pw, ph, Bitmap.Config.ARGB_8888)
+        val c = Canvas(patch)
+        val mx = Matrix()
+        mx.postTranslate(-MOUTH[0] * bmp.width, -MOUTH[1] * bmp.height)
+        mx.postRotate(-MOUTH[3])
+        mx.postTranslate(pw / 2f, 0f)
+        c.drawBitmap(bmp, mx, bmpPaint)
+        lowerPatch = patch
+        var k = 0
+        for (j in 0..M_ROWS) for (i in 0..M_COLS) {
+            mOrig[k++] = -patchW / 2f + patchW * i / M_COLS
+            mOrig[k++] = patchH * j / M_ROWS
         }
     }
 
@@ -180,14 +208,12 @@ class CharacterView @JvmOverloads constructor(
         lastNanos = frameTimeNanos
         t += dt
 
-        // voice: speaking audio level drives mouth + body; mic level drives a small listening motion
-        speaking = mode == AvatarMode.SPEAKING && LipSyncBus.sample(tmp)
+        val speaking = mode == AvatarMode.SPEAKING && LipSyncBus.sample(tmp)
         val mouthTarget = if (speaking) tmp[0].coerceIn(0f, 1f) else 0f
         mouth += (mouthTarget - mouth) * min(1f, dt * (if (mouthTarget > mouth) 30f else 14f))
         val target = if (speaking) tmp[0] else if (mode == AvatarMode.LISTENING) micLevel * 0.6f else 0f
         voice += (target - voice) * min(1f, dt * 14f)
 
-        // blinking (thinking = slow heavy blinks)
         if (blinkStart < 0f && t >= nextBlinkAt) { blinkStart = t; doubleBlink = Random.nextFloat() < 0.18f }
         if (blinkStart >= 0f) {
             val d = if (mode == AvatarMode.THINKING) 0.28f else 0.17f
@@ -213,21 +239,30 @@ class CharacterView @JvmOverloads constructor(
         return k * k * (3f - 2f * k)
     }
 
+    /** Wind: slow gusts push the hair one way, then the other; the free ends move most, the roots stay. */
     private fun warpHair(bw: Float, bh: Float) {
-        val lively = 1f + 1.6f * voice + (if (action != null) 2.6f * blend else 0f)
-        val amp = bw * 0.0065f * lively
+        val gust = 0.65f * sin(t * 1.15f) + 0.35f * sin(t * 2.35f + 1.3f)      // -1 .. 1, changes direction
+        val boost = 1f + 0.5f * voice + (if (action != null) 1.2f * blend else 0f)
+        val amp = bw * 0.034f * boost
         var k = 0
         while (k < orig.size) {
             val x = orig[k]; val y = orig[k + 1]
             val fx = x / bw; val fy = y / bh
-            // long curls on the left of the face and the sleeve below them; the face itself stays still
-            val wL = sstep(0.40f, 0.22f, fx) * sstep(0.09f, 0.20f, fy) * sstep(0.62f, 0.42f, fy)
-            // lighter strand on the right side of the face
-            val wR = sstep(0.66f, 0.74f, fx) * sstep(0.08f, 0.16f, fy) * sstep(0.34f, 0.22f, fy) * 0.6f
-            val w = max(wL, wR)
-            val ph = t * 1.5f + fy * 7f + fx * 3f
-            warped[k] = x + amp * w * sin(ph)
-            warped[k + 1] = y + amp * 0.35f * w * cos(ph * 0.9f)
+            // long curls on the left (not the sleeve edge), growing towards the tips
+            val wL = sstep(0.42f, 0.30f, fx) * sstep(0.14f, 0.24f, fx) * sstep(0.10f, 0.20f, fy) * sstep(0.62f, 0.40f, fy)
+            val lenL = sstep(0.10f, 0.50f, fy)                                     // 0 at the roots, 1 at the tips
+            // strand on the right of the face
+            val wR = sstep(0.64f, 0.72f, fx) * sstep(0.08f, 0.15f, fy) * sstep(0.32f, 0.20f, fy)
+            val lenR = sstep(0.08f, 0.26f, fy)
+            // ponytail on top of the head, small
+            val wT = sstep(0.36f, 0.42f, fx) * sstep(0.66f, 0.56f, fx) * sstep(0.10f, 0.02f, fy) * 0.5f
+            val ph = t * 3.1f + fy * 9f
+            val flutter = 0.35f * sin(ph) + 0.15f * sin(t * 5.3f + fx * 11f)
+            val sway = gust + flutter
+            val dx = amp * (wL * lenL + wR * lenR * 0.7f + wT) * sway
+            val dy = amp * 0.22f * (wL * lenL + wR * lenR) * (0.5f * sin(t * 1.6f + fy * 5f) - 0.25f * abs(gust))
+            warped[k] = x + dx
+            warped[k + 1] = y + dy
             k += 2
         }
     }
@@ -239,88 +274,68 @@ class CharacterView @JvmOverloads constructor(
         canvas.clipRect(0f, 0f, w, h)
 
         val bw = bmp.width.toFloat(); val bh = bmp.height.toFloat()
-        // Close-up: fill the width; the cut edge (mid-thigh) sits on / just below the bottom of the view.
+        // Fixed placement: fills the width, cut edge (mid-thigh) sits just below the bottom of the view.
         val over = h * 0.06f
-        val fit = min(w * 1.0f / bw, (h + over) / bh)
+        val fit = min(w / bw, (h + over) / bh)
         val dw = bw * fit; val dh = bh * fit
         val left = (w - dw) / 2f
         val bottom = h + over
         val top = bottom - dh
         val pivX = w / 2f; val pivY = bottom
 
-        glowPaint.alpha = (150 + 60 * sin(t * 1.6f)).toInt().coerceIn(0, 255)
         canvas.drawRect(0f, 0f, w, h, glowPaint)
 
-        // ---- pose ----
-        var tx = 0f; var ty = 0f; var rot = 0f; var sx = 1f; var sy = 1f; var skew = 0f; var yaw = 0f
-        val br = sin(t * 1.9f)
-        sy += 0.005f * br; sx -= 0.002f * br
-        rot += 0.6f * sin(t * 0.8f)
-        tx += w * 0.004f * sin(t * 0.6f)
-        when (mode) {
-            AvatarMode.LISTENING -> { rot += 1.4f; ty -= h * 0.003f * (1 + sin(t * 3f)) }
-            AvatarMode.THINKING -> { rot -= 2.0f; tx -= w * 0.01f }
-            else -> {}
-        }
-        ty -= h * 0.006f * voice
-        rot += 0.8f * voice * sin(t * 9f)
-
+        // ---- body pose: NOTHING moves unless an action was commanded ----
+        var tx = 0f; var ty = 0f; var rot = 0f; var sy = 1f; var skew = 0f; var yaw = 0f
         val a = action
         if (a != null && blend > 0f) {
             val p = actionT; val b = blend; val tp = 2f * PI.toFloat()
             when (a) {
                 CharacterAction.DANCE -> {
                     val beat = sin(p * tp * 1.8f); val hip = sin(p * tp * 0.9f)
-                    ty -= b * h * 0.022f * abs(beat)
-                    sy += b * 0.016f * (1f - abs(beat))
-                    tx += b * w * 0.04f * hip
-                    rot += b * 5.5f * hip
-                    skew += b * 0.06f * sin(p * tp * 0.9f + 0.9f)
+                    ty -= b * h * 0.015f * abs(beat)
+                    tx += b * w * 0.03f * hip
+                    rot += b * 4.5f * hip
+                    skew += b * 0.05f * sin(p * tp * 0.9f + 0.9f)
                 }
                 CharacterAction.SWAY -> {
                     val s = sin(p * tp * 0.5f)
-                    tx += b * w * 0.045f * s; rot += b * 3.5f * s; skew += b * 0.035f * s
-                    ty -= b * h * 0.005f * abs(sin(p * tp))
+                    tx += b * w * 0.035f * s; rot += b * 3f * s; skew += b * 0.03f * s
                 }
                 CharacterAction.SPIN -> {
                     val k = (p / max(0.01f, actionDur)).coerceIn(0f, 1f)
                     yaw = 360f * (k * k * (3f - 2f * k))
-                    ty -= h * 0.02f * sin(PI.toFloat() * k)
                 }
                 CharacterAction.JUMP -> {
                     val cyc = p / 0.85f; val frac = cyc - cyc.toInt()
-                    val up = sin(PI.toFloat() * frac)
-                    ty -= b * h * 0.05f * up          // stays below the hidden "over" margin, bottom never shows a gap
-                    sy += b * 0.03f * up
+                    ty -= b * h * 0.045f * sin(PI.toFloat() * frac)
                 }
                 CharacterAction.WAVE -> {
                     val s = sin(p * tp * 2.2f)
-                    rot += b * 6f * s; tx += b * w * 0.012f * s
-                    ty -= b * h * 0.005f * abs(s)
+                    rot += b * 5f * s; tx += b * w * 0.01f * s
                 }
                 CharacterAction.BOW -> {
                     val k = (p / max(0.01f, actionDur)).coerceIn(0f, 1f)
                     val d = sin(PI.toFloat() * k)
-                    sy -= 0.05f * d; rot += 4f * d; ty += h * 0.008f * d
+                    sy -= 0.05f * d; rot += 4f * d
                 }
                 CharacterAction.STOP -> {}
             }
         }
 
-        // ---- body transform (pivot = bottom centre) ----
         m.reset()
         m.postScale(fit, fit)
         m.postTranslate(left, top)
-        m.postScale(sx, sy, pivX, pivY)
-        m.postSkew(skew, 0f, pivX, pivY)
-        m.postRotate(rot, pivX, pivY)
+        if (sy != 1f) m.postScale(1f, sy, pivX, pivY)
+        if (skew != 0f) m.postSkew(skew, 0f, pivX, pivY)
+        if (rot != 0f) m.postRotate(rot, pivX, pivY)
         if (yaw != 0f) {
             cam.save(); cam.rotateY(yaw); cam.getMatrix(camM); cam.restore()
             val cy = top + dh * 0.4f
             camM.preTranslate(-pivX, -cy); camM.postTranslate(pivX, cy)
             m.postConcat(camM)
         }
-        m.postTranslate(tx, ty)
+        if (tx != 0f || ty != 0f) m.postTranslate(tx, ty)
 
         canvas.save()
         canvas.concat(m)
@@ -344,7 +359,7 @@ class CharacterView @JvmOverloads constructor(
         rect.set(-half * 1.04f, -hUp * 1.25f, half * 1.04f, lidY)
         fill.color = skin
         c.drawOval(rect, fill)
-        if (blink > 0.35f) {                      // closed-eye lash line along the lid edge
+        if (blink > 0.35f) {
             stroke.color = Color.argb((255 * min(1f, blink * 1.2f)).toInt(), 60, 32, 30)
             stroke.strokeWidth = max(1.5f, half * 0.12f)
             rect.set(-half * 0.98f, lidY - (hUp + hLow) * 0.35f, half * 0.98f, lidY + (hUp + hLow) * 0.35f)
@@ -353,32 +368,54 @@ class CharacterView @JvmOverloads constructor(
         c.restore()
     }
 
+    /**
+     * Talking: the character's own lower lip + chin slide down along the jaw (drawBitmapMesh), and the gap that
+     * opens between the lips shows a dark mouth interior with teeth. Nothing is pasted on top of the lips.
+     */
     private fun drawMouth(c: Canvas, bmp: Bitmap) {
-        if (mouth < 0.05f) return
+        val patch = lowerPatch ?: return
+        if (mouth < 0.04f) return
         val bw = bmp.width.toFloat(); val bh = bmp.height.toFloat()
-        val half = MOUTH[2] * bw
-        val open = (mouth * 0.62f + 0.04f) * half
+        val half = patchHalf
+        val open = mouth * 0.50f * half                      // jaw drop in bitmap pixels
+        val reach = half * 1.12f
         c.save()
         c.translate(MOUTH[0] * bw, MOUTH[1] * bh)
         c.rotate(MOUTH[3])
-        val widthK = 0.78f - 0.12f * mouth
-        // lip rim
-        rect.set(-half * widthK - half * 0.07f, -open * 0.62f - half * 0.07f, half * widthK + half * 0.07f, open * 0.9f + half * 0.09f)
-        fill.color = lipColor
-        c.drawOval(rect, fill)
-        // dark cavity
-        rect.set(-half * widthK, -open * 0.55f, half * widthK, open * 0.82f)
-        fill.color = Color.rgb(92, 18, 36)
-        c.drawOval(rect, fill)
-        // teeth strip + tongue
-        if (mouth > 0.25f) {
-            fill.color = Color.rgb(250, 244, 240)
-            rect.set(-half * widthK * 0.72f, -open * 0.55f, half * widthK * 0.72f, -open * 0.55f + open * 0.30f)
-            c.drawOval(rect, fill)
-            fill.color = Color.rgb(222, 96, 120)
-            rect.set(-half * widthK * 0.5f, open * 0.28f, half * widthK * 0.5f, open * 0.82f)
-            c.drawOval(rect, fill)
+
+        // 1) the opening between the lips: lens shaped, upper edge = lip line, lower edge = moved lower lip
+        val n = 24
+        path.reset()
+        path.moveTo(-reach, 0f)
+        path.lineTo(reach, 0f)
+        for (i in n downTo 0) {
+            val u = -reach + 2f * reach * i / n
+            val q = 1f - (u / reach) * (u / reach)
+            path.lineTo(u, open * q.coerceAtLeast(0f))
         }
+        path.close()
+        fill.color = Color.rgb(88, 16, 34)
+        c.drawPath(path, fill)
+        if (open > half * 0.18f) {                           // upper teeth just under the upper lip
+            c.save()
+            c.clipPath(path)
+            fill.color = Color.rgb(248, 242, 238)
+            rect.set(-reach * 0.62f, -open * 0.2f, reach * 0.62f, open * 0.42f)
+            c.drawRoundRect(rect, open * 0.3f, open * 0.3f, fill)
+            c.restore()
+        }
+
+        // 2) lower lip + chin, moved down (top edge by the full jaw drop, fading to nothing towards the chin)
+        var k = 0
+        for (j in 0..M_ROWS) for (i in 0..M_COLS) {
+            val u = mOrig[k]; val v = mOrig[k + 1]
+            val q = (1f - (u / reach) * (u / reach)).coerceAtLeast(0f)
+            val f = 1f - sstep(0.35f * half, patchH, v)
+            mWarped[k] = u
+            mWarped[k + 1] = v + open * q * f
+            k += 2
+        }
+        c.drawBitmapMesh(patch, M_COLS, M_ROWS, mWarped, 0, null, 0, bmpPaint)
         c.restore()
     }
 }
