@@ -40,3 +40,20 @@
 - Default Gemini key is NOT in source anymore: injected at build time from GEMINI_DEFAULT_KEY
   (GitHub Actions secret, environment variable, or local.properties:  GEMINI_DEFAULT_KEY=your_key)
 - design/: Premium Designs (26 Android / iOS / Premium looks) + Apps Box launcher-style screen (search, voice search, dock); Settings -> Premium Designs
+
+## 3D character + new backgrounds (latest)
+- res/drawable-nodpi/myra_bg_scene.jpg and splash_bg.jpg: replaced by the new neon MYRA artwork, 2160x3840 (same file names, so home / chat / settings / admin / wallpapers / splash all use it)
+- res/drawable-nodpi/myra_character.webp: new 3D full-body character, background removed (transparent), 4K height (3840 px)
+- ui/avatar/CharacterView.kt (new): draws the character, idle breathing, listening / thinking / speaking motion (speaking bounce follows the real voice level) and the actions below. Decodes the 4K file only at the size the screen needs.
+- ui/avatar/CharacterActionBus.kt (new): dance, spin, jump, wave, bow, sway, stop
+- Voice control: Gemini function `character_action` (GeminiWebSocketClient + PhoneControl.executeTool + prompt line in ForegroundVoiceService) plus a keyword fallback on the live transcript (naach / nacho / dance, ghoomo / spin, kudo / jump, wave, jhuko / bow, ruk jao / stop)
+- activity_main.xml / MainActivity.kt: CharacterView added. The old AvatarStageView + crown are kept in the layout (visibility gone), nothing deleted. AvatarView, AvatarStageView, myra_avatar.png are untouched.
+- myra_avatar_thumb.png (chat / dock icon): now the new character's face, 512 px
+- welcome_header.webp, design_art_lock.webp, design_art_phantom.webp: upscaled 2-3x (Lanczos + sharpen)
+
+## Character v2 (replaces the first 3D character)
+- myra_character.webp: new transparent character, cropped head to mid-thigh (feet not shown), 4K height (2251x3840), lossless
+- CharacterView: sits on the bottom edge of the screen behind the status panel / nav bar (close-up). New face rig: natural eye blinking, mouth opens with MYRA's real voice (LipSyncBus), hair / sleeve wave by mesh warp, plus dance / spin / jump / wave / bow / sway on command
+- myra_avatar_thumb.png: face of the new character (512 px)
+
+- utils/LiveAudioManager.kt: AudioPlaybackThread no longer throws InterruptedException when stop() interrupts it (normal shutdown is now handled quietly)

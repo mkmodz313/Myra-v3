@@ -511,6 +511,11 @@ object PhoneControl {
                     }
                     res(confirmSend(ctx, p))
                 }
+                "character_action" -> {
+                    val act = com.myra.assistant.ui.avatar.CharacterAction.fromKey(args.optString("action"))
+                    if (act == null) "failed: unknown action '${args.optString("action")}'. Use dance, spin, jump, wave, bow, sway or stop."
+                    else "success: " + com.myra.assistant.ui.avatar.CharacterActionBus.perform(act)
+                }
                 "run_command" -> {
                     val cmd = args.optString("command").trim()
                     if (cmd.isEmpty()) "failed: no command"

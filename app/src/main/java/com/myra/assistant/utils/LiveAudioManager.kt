@@ -71,17 +71,22 @@ class LiveAudioManager(private val context: Context) {
 
     private fun startPlaybackThread() {
         playbackThread = Thread {
-            while (!Thread.interrupted()) {
-                val chunk = audioQueue.poll()
-                if (chunk != null) {
-                    try {
-                        audioTrack?.write(chunk, 0, chunk.size)
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Audio write error: ${e.message}")
+            // stop() interrupts this thread on purpose: that is a normal shutdown, not an error.
+            try {
+                while (!Thread.currentThread().isInterrupted) {
+                    val chunk = audioQueue.poll()
+                    if (chunk != null) {
+                        try {
+                            audioTrack?.write(chunk, 0, chunk.size)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Audio write error: ${e.message}")
+                        }
+                    } else {
+                        Thread.sleep(10)
                     }
-                } else {
-                    Thread.sleep(10)
                 }
+            } catch (_: InterruptedException) {
+                Thread.currentThread().interrupt()
             }
         }.apply {
             name = "AudioPlaybackThread"

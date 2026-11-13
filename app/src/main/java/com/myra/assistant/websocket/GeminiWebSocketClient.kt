@@ -227,6 +227,8 @@ class GeminiWebSocketClient(
             .put(fn("answer_call", "Answer the incoming phone call. mode 'normal' = just pick up (the user talks); mode 'talk' = pick up and talk to the caller yourself on speakerphone.",
                 "mode" to "normal or talk"))
             .put(fn("end_call", "End or decline the current phone call."))
+            .put(fn("character_action", "Make MYRA's 3D character on the screen perform a body action. Use it whenever the user asks you to dance, spin, jump, wave, bow or sway, or to stop.",
+                "action" to "One of: dance, spin, jump, wave, bow, sway, stop"))
             .put(fn("run_command", "Other device actions. Command is one of: VOLUME_UP, VOLUME_DOWN, FLASHLIGHT_ON, FLASHLIGHT_OFF, CALL <name>, WHATSAPP_CALL <name>.",
                 "command" to "The command"))
         )

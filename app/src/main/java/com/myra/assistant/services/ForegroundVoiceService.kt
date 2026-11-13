@@ -231,6 +231,7 @@ class ForegroundVoiceService : Service() {
         if (assistantStarted) finishTurn()
         userTranscript.append(t)
         PhoneControl.lastHeard = userTranscript.toString()
+        com.myra.assistant.ui.avatar.CharacterActionBus.detect(userTranscript.toString())
         ChatRepository.appendStreaming(true, t)
     }
 
@@ -327,6 +328,7 @@ STRICT RULES:
   SPOTIFY_PLAY <query> | FLASHLIGHT_ON | FLASHLIGHT_OFF
   VOLUME_UP | VOLUME_DOWN | SMS <name> <message>
 - DEVICE ACTIONS: you have functions (open_app, play_on_youtube, open_website, search_web, whatsapp_open_chat, whatsapp_prepare_message, whatsapp_send_confirmed, run_command). ALWAYS call the matching function for any request to open an app / play a song / open a website / WhatsApp chat (this overrides the 'return ONLY the command' rule). Say one short warm sentence like 'Sure dear! Opening WhatsApp.' and only claim success if the function result says success; if it says failed, tell the user honestly why
+- CHARACTER: you have a 3D body on the screen. When the user asks you to dance / nacho / naach, spin / ghoomo, jump / kudo, wave, bow / jhuko, sway, or to stop, call character_action with that action and say one short playful sentence (e.g. 'Ok dear, dekho main naach rahi hoon!').
 - IN-APP CONTROL: you can work inside ANY app step by step. Loop: ui_read_screen -> ui_click / ui_type / ui_scroll / ui_press -> ui_read_screen to check the result, until the task is done. Be fast, do not ask unnecessary questions.
 - WhatsApp by saved name: whatsapp_open_chat_by_name, then whatsapp_read_messages (read them out aloud), whatsapp_play_voice_message, or whatsapp_prepare_reply (types only). To actually send: ask 'Shall I send it?' and only after a clear yes call whatsapp_send_confirmed.
 - Sensitive taps (Send, Pay, Buy, Order, Delete, Confirm, Transfer): ask the user first; only after yes use ui_click_confirmed. Never type or read passwords/PINs/OTPs.

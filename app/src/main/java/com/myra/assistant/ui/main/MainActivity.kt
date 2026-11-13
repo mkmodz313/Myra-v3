@@ -43,6 +43,7 @@ class MainActivity : AppCompatActivity() {
     private val viewModel: MainViewModel by viewModels()
 
     private lateinit var avatarStage: AvatarStageView
+    private lateinit var characterView: com.myra.assistant.ui.avatar.CharacterView
     private lateinit var waveformView: NeonWaveformView
     private lateinit var ambientFx: AmbientFxView
     private lateinit var micGlow: View
@@ -108,6 +109,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun initViews() {
         avatarStage = findViewById(R.id.avatarStage)
+        characterView = findViewById(R.id.characterView)
         waveformView = findViewById(R.id.waveformView)
         ambientFx   = findViewById(R.id.ambientFx)
         micGlow     = findViewById(R.id.micGlow)
@@ -198,6 +200,7 @@ class MainActivity : AppCompatActivity() {
         VoiceStateManager.state.observe(this) { state ->
             val mode = AvatarMode.fromVoiceState(state)
             avatarStage.setMode(mode)
+            characterView.setMode(mode)
             waveformView.setMode(mode)
             when (state) {
                 Constants.STATE_LISTENING -> micButton.setImageResource(R.drawable.ic_mic_neon_on)
@@ -208,6 +211,7 @@ class MainActivity : AppCompatActivity() {
         // Microphone amplitude (only produced while the user is being heard).
         VoiceStateManager.amplitude.observe(this) { amp ->
             avatarStage.setMicLevel(amp)
+            characterView.setMicLevel(amp)
             waveformView.setMicLevel(amp)
         }
         VoiceStateManager.statusMessage.observe(this) { msg ->
@@ -270,6 +274,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         // (Re)start the shared animation clock only while the screen is visible.
         avatarStage.start()
+        characterView.start()
         waveformView.start()
         ambientFx.start()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -282,6 +287,7 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         // Stop every animation loop so nothing runs in the background (zero CPU while paused).
         avatarStage.stop()
+        characterView.stop()
         waveformView.stop()
         ambientFx.stop()
         super.onPause()

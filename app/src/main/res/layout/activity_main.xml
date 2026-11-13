@@ -208,6 +208,7 @@
     <!-- ═════════════ AVATAR STAGE (fills the space between header and waveform) ═════════════ -->
     <com.myra.assistant.ui.avatar.AvatarStageView
         android:id="@+id/avatarStage"
+        android:visibility="gone"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginTop="6dp"
@@ -223,6 +224,7 @@
     <!-- crown resting on top of the neon ring (bias ≈ ring top as a fraction of the stage) -->
     <ImageView
         android:id="@+id/crownStage"
+        android:visibility="gone"
         android:layout_width="44dp"
         android:layout_height="33dp"
         android:importantForAccessibility="no"
@@ -232,6 +234,18 @@
         app:layout_constraintStart_toStartOf="@id/avatarStage"
         app:layout_constraintTop_toTopOf="@id/avatarStage"
         app:layout_constraintVertical_bias="0.07"/>
+
+    <!-- 3D full-body character (transparent PNG, animated; obeys dance / spin / jump / wave / bow commands) -->
+    <com.myra.assistant.ui.avatar.CharacterView
+        android:id="@+id/characterView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="2dp"
+        android:contentDescription="MYRA"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/taglineText"/>
 
     <!-- ═════════════ WAVEFORM ═════════════ -->
     <com.myra.assistant.ui.avatar.NeonWaveformView
