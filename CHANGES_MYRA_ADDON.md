@@ -62,3 +62,10 @@
 - CharacterView: character is now completely fixed on screen (no left/right/up/down drift); only commanded actions move it
 - Hair: wind animation (gusts push the curls left and right, face stays still)
 - Mouth: the picture's own lower lip + chin move down with the voice (mesh warp) with a dark mouth interior + teeth, instead of the pasted-on oval
+
+## Voice fix + speed (latest)
+- voice/VoiceStateManager.kt: mic can never stay blocked (watchdog), shorter mic tail (120 ms)
+- voice/AudioPlayer.kt: play thread never dies, faster start (30 ms prime), low-latency AudioTrack
+- voice/AudioRecorder.kt: mic init check, auto-restart on read errors
+- services/ForegroundVoiceService.kt: tool calls always answered (12 s timeout), mic retry
+- websocket/GeminiWebSocketClient.kt: faster end-of-speech (300 ms, HIGH)

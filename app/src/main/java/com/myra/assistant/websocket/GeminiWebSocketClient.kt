@@ -164,8 +164,8 @@ class GeminiWebSocketClient(
                 if (vadTuning) put("realtimeInputConfig", JSONObject().put("automaticActivityDetection", JSONObject()
                     .put("startOfSpeechSensitivity", "START_SENSITIVITY_HIGH")
                     .put("endOfSpeechSensitivity", "END_SENSITIVITY_HIGH")
-                    .put("prefixPaddingMs", 20)
-                    .put("silenceDurationMs", 350)))
+                    .put("prefixPaddingMs", 40)
+                    .put("silenceDurationMs", 300)))
                 if (toolsEnabled && onToolCall != null) put("tools", buildTools())
                 if (extrasEnabled) {
                     put("inputAudioTranscription", JSONObject())

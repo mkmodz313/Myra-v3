@@ -163,6 +163,8 @@ class ForegroundVoiceService : Service() {
                 backoffMs = 1000L
                 VoiceStateManager.setListening()
                 audioRecorder.start()
+                // if the mic could not open (busy), try again shortly
+                scope.launch { delay(1500); if (!audioRecorder.isActive()) audioRecorder.start() }
             },
             onAudioReceived = { data ->
                 // Streaming playback: every chunk goes straight to the player as soon as it arrives.
@@ -198,9 +200,15 @@ class ForegroundVoiceService : Service() {
             onToolCall = { id, name, args ->
                 // Real execution of the model's phone-control request; the true result goes back to the model.
                 scope.launch(Dispatchers.Main) {
-                    val out = PhoneControl.executeTool(applicationContext, name, args)
+                    // ALWAYS answer the model, even on error / timeout - otherwise it waits forever = "no reply".
+                    val out = try {
+                        kotlinx.coroutines.withTimeoutOrNull(12_000L) {
+                            PhoneControl.executeTool(applicationContext, name, args)
+                        } ?: "failed: the action took too long, tell the user it did not finish"
+                    } catch (e: Throwable) { "failed: ${e.message}" }
                     Logger.d(TAG, "TOOL $name -> $out")
                     geminiClient?.sendToolResponse(id, name, out)
+                    if (!audioRecorder.isActive()) audioRecorder.start()
                 }
             }
         )

@@ -12,8 +12,8 @@ import java.util.concurrent.TimeUnit
 class AudioPlayer {
     private val TAG = "PLAYER"
     private val SAMPLE_RATE = Constants.SAMPLE_RATE_OUT
-    private val PRIME_MS = 70            // audio collected before a reply starts playing
-    private val PRIME_MAX_WAIT_MS = 120L // never wait longer than this for it
+    private val PRIME_MS = 30            // audio collected before a reply starts playing
+    private val PRIME_MAX_WAIT_MS = 50L // never wait longer than this for it
     private val FINISH_GAP_MS = 300L     // silence from the server that really means "reply finished"
 
     private var audioTrack: AudioTrack? = null
@@ -56,7 +56,7 @@ class AudioPlayer {
                 )
                 .setBufferSizeInBytes(minBuf * 4)
                 .setTransferMode(AudioTrack.MODE_STREAM)
-                .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_NONE)
+                .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
                 .build()
         } else {
             @Suppress("DEPRECATION")
@@ -91,6 +91,7 @@ class AudioPlayer {
             framesWritten += chunk.size / 2
             // Speaker first (never let analysis delay the audio), then the lip-sync analyser with the same PCM.
             audioTrack?.write(chunk, 0, chunk.size)
+            VoiceStateManager.noteAudio()
             LipSyncBus.onPcm(chunk, start)
         } catch (e: Exception) {
             Logger.e(TAG, "Write error: ${e.message}")
@@ -106,6 +107,7 @@ class AudioPlayer {
             var lastChunkAt = 0L
             try {
                 while (!Thread.interrupted()) {
+                  try {
                     val chunk = queue.poll(15, TimeUnit.MILLISECONDS)
                     if (chunk != null) {
                         if (!wasPlaying) {
@@ -132,6 +134,14 @@ class AudioPlayer {
                         wasPlaying = false
                         onPlaybackFinished?.invoke()
                     }
+                  } catch (e: InterruptedException) {
+                      throw e
+                  } catch (e: Throwable) {
+                      // never let this thread die: a dead player = mic blocked + no voice
+                      Logger.e(TAG, "play loop: ${e.message}")
+                      wasPlaying = false
+                      VoiceStateManager.setListening()
+                  }
                 }
             } catch (_: InterruptedException) {
             }
