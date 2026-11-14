@@ -80,6 +80,7 @@ class ForegroundVoiceService : Service() {
     // reconnect / continuity state
     private var reconnectJob: Job? = null
     private var backoffMs = 1000L
+    private var failStreak = 0
     private var lastConnectAt = 0L
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
     private var lastNetwork: Network? = null
@@ -149,6 +150,13 @@ class ForegroundVoiceService : Service() {
     }
 
     private fun connectGemini(apiKey: String) {
+        // Pin this connection to the network that is active right now (Wi-Fi or mobile data).
+        try {
+            val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            GeminiWebSocketClient.SmartDns.boundNetwork = if (failStreak >= 4) null else cm.activeNetwork
+            GeminiWebSocketClient.SmartDns.forceDoh = failStreak >= 2 || GeminiWebSocketClient.SmartDns.forceDoh
+            GeminiWebSocketClient.resetConnections()
+        } catch (_: Throwable) { }
         // Only ONE live socket at a time: closing the old one first means it can never deliver duplicate audio.
         geminiClient?.disconnect()
         audioPlayer.dropPending()
@@ -162,6 +170,7 @@ class ForegroundVoiceService : Service() {
             systemPrompt = buildSystemPrompt(),
             onConnected = {
                 backoffMs = 1000L
+                failStreak = 0
                 VoiceStateManager.setListening()
                 audioRecorder.start()
                 // if the mic could not open (busy), try again shortly
@@ -219,7 +228,15 @@ class ForegroundVoiceService : Service() {
     /** Exponential back-off reconnect (1s, 2s, 4s ... 15s). One pending reconnect at a time. */
     private fun scheduleReconnect(reason: String) {
         Logger.e(TAG, "Gemini error: $reason")
-        VoiceStateManager.setError("Reconnecting...")
+        if (!reason.startsWith("server goAway")) failStreak++
+        val why = when {
+            reason.contains("resolve", true) || reason.contains("UnknownHost", true) -> "DNS"
+            reason.contains("timeout", true) || reason.contains("timed out", true) -> "slow network"
+            reason.contains("SSL", true) || reason.contains("Trust", true) -> "SSL"
+            reason.contains("Closed: 1007") || reason.contains("Closed: 1008") -> "server rejected"
+            else -> reason.take(28)
+        }
+        VoiceStateManager.setError("Reconnecting... ($why)")
         reconnectJob?.cancel()
         reconnectJob = scope.launch {
             val wait = backoffMs
@@ -252,6 +269,7 @@ class ForegroundVoiceService : Service() {
                         // Wi-Fi <-> mobile data: the old socket is dead; reconnect at once (conversation is resumed)
                         reconnectJob?.cancel()
                         backoffMs = 1000L
+                        failStreak = 0
                         scope.launch {
                             delay(500)
                             val key = ApiKeys.gemini(applicationContext)

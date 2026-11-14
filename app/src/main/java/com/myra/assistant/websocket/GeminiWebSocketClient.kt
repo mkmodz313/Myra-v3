@@ -32,17 +32,71 @@ class GeminiWebSocketClient(
     private val onGoAway: (() -> Unit)? = null,
     private val onToolCall: ((id: String, name: String, args: JSONObject) -> Unit)? = null
 ) {
+    /**
+     * Mobile-data hardening.
+     *  1) DNS goes through the CURRENT network (Network.getAllByName), then system DNS, then DNS-over-HTTPS
+     *     (Google / Cloudflare by IP) - carrier DNS that fails or lies can no longer stop the voice connection.
+     *  2) IPv4 addresses are tried first (many mobile networks have a broken IPv6 route).
+     *  3) The socket is bound to the current network, so Wi-Fi <-> mobile data switches cannot send it down a dead path.
+     */
+    object SmartDns : Dns {
+        @Volatile var boundNetwork: android.net.Network? = null
+        @Volatile var forceDoh = false
+
+        private val dohClient: OkHttpClient by lazy {
+            OkHttpClient.Builder()
+                .connectTimeout(4, TimeUnit.SECONDS).readTimeout(4, TimeUnit.SECONDS)
+                .dns(object : Dns {   // bootstrap by IP so the resolver itself needs no DNS
+                    override fun lookup(hostname: String): List<java.net.InetAddress> = when (hostname) {
+                        "dns.google" -> listOf("8.8.8.8", "8.8.4.4").map { java.net.InetAddress.getByName(it) }
+                        "cloudflare-dns.com" -> listOf("1.1.1.1", "1.0.0.1").map { java.net.InetAddress.getByName(it) }
+                        else -> Dns.SYSTEM.lookup(hostname)
+                    }
+                }).build()
+        }
+
+        private fun doh(host: String): List<java.net.InetAddress> {
+            val urls = listOf(
+                "https://dns.google/resolve?name=$host&type=A",
+                "https://cloudflare-dns.com/dns-query?name=$host&type=A"
+            )
+            for (u in urls) {
+                try {
+                    val req = Request.Builder().url(u).header("accept", "application/dns-json").build()
+                    dohClient.newCall(req).execute().use { r ->
+                        val answers = JSONObject(r.body?.string().orEmpty()).optJSONArray("Answer") ?: return@use
+                        val out = ArrayList<java.net.InetAddress>()
+                        for (i in 0 until answers.length()) {
+                            val a = answers.getJSONObject(i)
+                            if (a.optInt("type") == 1) out.add(java.net.InetAddress.getByName(a.getString("data")))
+                        }
+                        if (out.isNotEmpty()) return out
+                    }
+                } catch (e: Exception) { Log.w(TAG, "DoH failed: ${e.message}") }
+            }
+            return emptyList()
+        }
+
+        override fun lookup(hostname: String): List<java.net.InetAddress> {
+            val out = LinkedHashSet<java.net.InetAddress>()
+            if (forceDoh) out.addAll(doh(hostname))
+            if (out.isEmpty()) try { boundNetwork?.getAllByName(hostname)?.let { out.addAll(it) } } catch (_: Exception) {}
+            if (out.isEmpty()) try { out.addAll(Dns.SYSTEM.lookup(hostname)) } catch (_: Exception) {}
+            if (out.isEmpty()) out.addAll(doh(hostname))
+            if (out.isEmpty()) throw java.net.UnknownHostException("Unable to resolve $hostname")
+            return out.sortedBy { if (it is java.net.Inet4Address) 0 else 1 }
+        }
+    }
+
     companion object {
         private const val TAG = "GEMINI_WS"
+        fun resetConnections() { try { sharedClient.connectionPool.evictAll() } catch (_: Exception) {} }
 
         /** Shared client: TLS sessions / connection pool are reused, so reconnects are faster. */
         private val sharedClient: OkHttpClient = OkHttpClient.Builder()
             .readTimeout(0, TimeUnit.MILLISECONDS)
-            .connectTimeout(10, TimeUnit.SECONDS)
-            .dns(object : Dns {   // IPv4 first: some mobile networks have a broken IPv6 route (slow / failed connects)
-                override fun lookup(hostname: String): List<java.net.InetAddress> =
-                    Dns.SYSTEM.lookup(hostname).sortedBy { if (it is java.net.Inet4Address) 0 else 1 }
-            })
+            .connectTimeout(8, TimeUnit.SECONDS)
+            .dns(SmartDns)
             .pingInterval(10, TimeUnit.SECONDS)   // a dead connection is noticed in ~10 s
             .retryOnConnectionFailure(true)
             .build()
@@ -85,7 +139,11 @@ class GeminiWebSocketClient(
             .addHeader("Origin", "https://generativelanguage.googleapis.com")
             .build()
 
-        webSocket = sharedClient.newWebSocket(request, object : WebSocketListener() {
+        val net = SmartDns.boundNetwork
+        val client = try {
+            if (net != null) sharedClient.newBuilder().socketFactory(net.socketFactory).build() else sharedClient
+        } catch (_: Throwable) { sharedClient }
+        webSocket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(ws: WebSocket, response: Response) {
                 if (myGen != generation) { ws.cancel(); return }
                 Log.d(TAG, "Connected ✅")

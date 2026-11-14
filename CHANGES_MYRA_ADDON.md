@@ -74,3 +74,13 @@
 - AudioRecorder / AudioPlayer sound settings / server VAD values: back to the original (working) versions
 - Kept only logic-safe protections: mic watchdog, play thread never dies, tool call always answered (12 s), mic retry
 - Network: IPv4-first DNS, ping 10 s, instant reconnect when Wi-Fi <-> mobile data switches
+
+## v4: mobile data hardening
+- SmartDns: current-network DNS -> system DNS -> DNS-over-HTTPS (Google/Cloudflare by IP); IPv4 first
+- Socket pinned to the active network (Wi-Fi or mobile data); auto-fallback (DoH after 2 fails, unpinned after 4)
+- Status now shows the reason: Reconnecting... (DNS / slow network / SSL / server rejected)
+
+## App version 3.0.0 (versionCode 3): wallpaper fix
+- WallpaperDetailActivity: preview now uses TextureView (no more black SurfaceView), centre-crop, safe release
+- "Set wallpaper": every step wrapped, 3 fallback system screens, can no longer crash the app
+- VideoWallpaperService: every callback guarded, surface validity check

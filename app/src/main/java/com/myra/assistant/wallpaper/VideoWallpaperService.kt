@@ -13,6 +13,7 @@ import java.io.File
  *
  * Battery: muted, no wake-lock, playback is paused whenever the wallpaper is not visible (screen off, app in
  * front, etc.) and the MediaPlayer is fully released when the surface is destroyed or the engine dies.
+ * Every callback is wrapped so a video problem can never crash the app.
  */
 class VideoWallpaperService : WallpaperService() {
 
@@ -31,14 +32,22 @@ class VideoWallpaperService : WallpaperService() {
 
         override fun onCreate(surfaceHolder: SurfaceHolder) {
             super.onCreate(surfaceHolder)
-            setTouchEventsEnabled(false)
-            applicationContext.prefs().registerOnSharedPreferenceChangeListener(this)
+            try {
+                setTouchEventsEnabled(false)
+                applicationContext.prefs().registerOnSharedPreferenceChangeListener(this)
+            } catch (e: Throwable) { Log.e(TAG, "onCreate: ${e.message}") }
         }
 
         override fun onSurfaceCreated(h: SurfaceHolder) {
             super.onSurfaceCreated(h)
             holder = h
-            if (isVisible) startPlayback()
+            try { if (isVisible) startPlayback() } catch (e: Throwable) { Log.e(TAG, "surfaceCreated: ${e.message}") }
+        }
+
+        override fun onSurfaceChanged(h: SurfaceHolder, format: Int, width: Int, height: Int) {
+            super.onSurfaceChanged(h, format, width, height)
+            holder = h
+            try { if (isVisible && player == null) startPlayback() } catch (e: Throwable) { Log.e(TAG, "surfaceChanged: ${e.message}") }
         }
 
         override fun onSurfaceDestroyed(h: SurfaceHolder) {
@@ -48,61 +57,65 @@ class VideoWallpaperService : WallpaperService() {
         }
 
         override fun onVisibilityChanged(visible: Boolean) {
-            if (visible) startPlayback() else pausePlayback()
+            try { if (visible) startPlayback() else pausePlayback() } catch (e: Throwable) { Log.e(TAG, "visibility: ${e.message}") }
         }
 
         override fun onSharedPreferenceChanged(sp: SharedPreferences, key: String?) {
             if (key == PREF_PATH) {      // user picked another wallpaper while this one is active
-                releasePlayer()
-                if (isVisible) startPlayback()
+                try {
+                    releasePlayer()
+                    if (isVisible) startPlayback()
+                } catch (e: Throwable) { Log.e(TAG, "prefChanged: ${e.message}") }
             }
         }
 
         private fun startPlayback() {
             val h = holder ?: return
+            if (!h.surface.isValid) return
             val p = player
             if (p != null) {
-                if (prepared && !p.isPlaying) try { p.start() } catch (_: Exception) { releasePlayer(); startPlayback() }
+                if (prepared) try { if (!p.isPlaying) p.start() } catch (_: Throwable) { releasePlayer(); startPlayback() }
                 return
             }
             val path = applicationContext.prefs().getString(PREF_PATH, null) ?: return
             if (!File(path).exists()) return
             try {
-                player = MediaPlayer().apply {
-                    setSurface(h.surface)
-                    setDataSource(path)
-                    isLooping = true
-                    setVolume(0f, 0f)
-                    setVideoScalingMode(MediaPlayer.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING)
-                    setOnPreparedListener { mp ->
+                val mp = MediaPlayer()
+                player = mp
+                mp.setSurface(h.surface)
+                mp.setDataSource(path)
+                mp.isLooping = true
+                mp.setVolume(0f, 0f)
+                mp.setOnPreparedListener { m ->
+                    try {
                         prepared = true
-                        if (isVisible) mp.start()
-                    }
-                    setOnErrorListener { _, what, extra ->
-                        Log.e(TAG, "MediaPlayer error $what/$extra")
-                        releasePlayer()
-                        true
-                    }
-                    prepareAsync()
+                        if (isVisible) m.start()
+                    } catch (e: Throwable) { Log.e(TAG, "start: ${e.message}"); releasePlayer() }
                 }
-            } catch (e: Exception) {
+                mp.setOnErrorListener { _, what, extra ->
+                    Log.e(TAG, "MediaPlayer error $what/$extra")
+                    releasePlayer()
+                    true
+                }
+                mp.prepareAsync()
+            } catch (e: Throwable) {
                 Log.e(TAG, "Cannot start video: ${e.message}")
                 releasePlayer()
             }
         }
 
         private fun pausePlayback() {
-            try { if (prepared) player?.pause() } catch (_: Exception) { }
+            try { if (prepared) player?.pause() } catch (_: Throwable) { }
         }
 
         private fun releasePlayer() {
             prepared = false
-            try { player?.release() } catch (_: Exception) { }
+            try { player?.setOnErrorListener(null); player?.release() } catch (_: Throwable) { }
             player = null
         }
 
         override fun onDestroy() {
-            applicationContext.prefs().unregisterOnSharedPreferenceChangeListener(this)
+            try { applicationContext.prefs().unregisterOnSharedPreferenceChangeListener(this) } catch (_: Throwable) { }
             releasePlayer()
             super.onDestroy()
         }
