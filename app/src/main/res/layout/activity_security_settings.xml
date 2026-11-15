@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#121212">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Security Settings"
+            android:textColor="#FFFFFF"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="24dp"/>
+
+        <!-- App Lock Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Enable App Lock"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"/>
+
+            <Switch
+                android:id="@+id/appLockSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/appLockStatusText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔓 App Lock OFF"
+            android:textColor="#888888"
+            android:layout_marginBottom="8dp"/>
+
+        <Button
+            android:id="@+id/selectAppsBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Select Apps to Lock"
+            android:textAllCaps="false"
+            android:layout_marginBottom="24dp"/>
+
+        <!-- Permissions Section -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Permissions Required"
+            android:textColor="#FF1744"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+
+        <Button
+            android:id="@+id/usageStatsBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Allow Usage Stats"
+            android:textAllCaps="false"
+            android:layout_marginBottom="8dp"/>
+
+        <Button
+            android:id="@+id/overlayPermissionBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Allow Display Over Apps"
+            android:textAllCaps="false"
+            android:layout_marginBottom="24dp"/>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#333333"
+            android:layout_marginBottom="24dp"/>
+
+        <!-- PIN Section -->
+        <Button
+            android:id="@+id/setPinBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Set / Change PIN"
+            android:textAllCaps="false"/>
+
+        <TextView
+            android:id="@+id/pinStatusText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="❌ PIN not set"
+            android:textColor="#888888"
+            android:layout_marginBottom="16dp"/>
+
+        <!-- Pattern Section -->
+        <Button
+            android:id="@+id/setPatternBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Set Pattern"
+            android:textAllCaps="false"/>
+
+        <TextView
+            android:id="@+id/patternStatusText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="❌ Pattern not set"
+            android:textColor="#888888"
+            android:layout_marginBottom="16dp"/>
+
+        <!-- Voice Section -->
+        <Button
+            android:id="@+id/setVoiceBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Set Voice Passphrase"
+            android:textAllCaps="false"/>
+
+        <TextView
+            android:id="@+id/voiceStatusText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="❌ Not set"
+            android:textColor="#888888"
+            android:layout_marginBottom="24dp"/>
+
+        <!-- Biometric Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Fingerprint Unlock"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"/>
+
+            <Switch
+                android:id="@+id/fingerprintSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <!-- System Lock Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="24dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Use Device Screen Lock"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"/>
+
+            <Switch
+                android:id="@+id/deviceLockSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#333333"
+            android:layout_marginBottom="24dp"/>
+
+        <!-- Private Mode Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Private Mode"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"/>
+
+            <Switch
+                android:id="@+id/privateModeSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/privateModeStatusText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="👁️ Private Mode OFF"
+            android:textColor="#888888"
+            android:layout_marginBottom="24dp"/>
+
+        <!-- Encryption Status -->
+        <TextView
+            android:id="@+id/encryptionStatusText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔐 AES-256-GCM (Android Keystore) — Always ON"
+            android:textColor="#00E676"
+            android:textSize="12sp"
+            android:layout_marginBottom="32dp"/>
+
+    </LinearLayout>
+</ScrollView>

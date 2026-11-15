@@ -1,0 +1,370 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    activity_app_lock.xml
+    MYRA Lock Screen — PIN | Pattern | Voice tabs
+    Background: dark purple gradient to match MYRA theme
+-->
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0D0D1A">
+
+    <!-- Top: MYRA logo / title -->
+    <LinearLayout
+        android:id="@+id/headerLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:paddingTop="48dp"
+        android:paddingBottom="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔐 MYRA"
+            android:textColor="#E91E8C"
+            android:textSize="28sp"
+            android:textStyle="bold"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Device Locked"
+            android:textColor="#888888"
+            android:textSize="14sp"
+            android:layout_marginTop="4dp"/>
+    </LinearLayout>
+
+    <!-- Tab Row: PIN | Pattern | Voice -->
+    <LinearLayout
+        android:id="@+id/tabRow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_below="@id/headerLayout"
+        android:layout_marginHorizontal="24dp"
+        android:background="#1A1A2E"
+        android:padding="4dp">
+
+        <TextView
+            android:id="@+id/tabPin"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="PIN"
+            android:textColor="#888888"
+            android:textSize="14sp"
+            android:textStyle="bold"/>
+
+        <TextView
+            android:id="@+id/tabPattern"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="Pattern"
+            android:textColor="#E91E8C"
+            android:textSize="14sp"
+            android:textStyle="bold"/>
+
+        <TextView
+            android:id="@+id/tabVoice"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="Voice"
+            android:textColor="#888888"
+            android:textSize="14sp"
+            android:textStyle="bold"/>
+
+        <TextView
+            android:id="@+id/tabFinger"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="Finger"
+            android:textColor="#888888"
+            android:textSize="14sp"
+            android:textStyle="bold"/>
+    </LinearLayout>
+
+    <!-- Content area -->
+    <LinearLayout
+        android:id="@+id/contentArea"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_below="@id/tabRow"
+        android:layout_above="@id/lockoutOverlay"
+        android:padding="24dp">
+
+        <!-- ══════════ PIN SECTION ══════════ -->
+        <LinearLayout
+            android:id="@+id/pinSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/pinStatusText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Enter PIN"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- PIN dots display -->
+            <TextView
+                android:id="@+id/pinDisplay"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="○○○○○○"
+                android:textColor="#E91E8C"
+                android:textSize="32sp"
+                android:letterSpacing="0.3"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:id="@+id/pinAttemptsText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#FFAB40"
+                android:textSize="12sp"
+                android:layout_marginBottom="24dp"/>
+
+            <!-- Numpad 3x3 + 0 -->
+            <GridLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:columnCount="3"
+                android:rowCount="4">
+
+                <!-- Row 1: 1 2 3 -->
+                <Button android:id="@+id/btn1" style="@style/PinButton" android:text="1"/>
+                <Button android:id="@+id/btn2" style="@style/PinButton" android:text="2"/>
+                <Button android:id="@+id/btn3" style="@style/PinButton" android:text="3"/>
+                <!-- Row 2: 4 5 6 -->
+                <Button android:id="@+id/btn4" style="@style/PinButton" android:text="4"/>
+                <Button android:id="@+id/btn5" style="@style/PinButton" android:text="5"/>
+                <Button android:id="@+id/btn6" style="@style/PinButton" android:text="6"/>
+                <!-- Row 3: 7 8 9 -->
+                <Button android:id="@+id/btn7" style="@style/PinButton" android:text="7"/>
+                <Button android:id="@+id/btn8" style="@style/PinButton" android:text="8"/>
+                <Button android:id="@+id/btn9" style="@style/PinButton" android:text="9"/>
+                <!-- Row 4: empty 0 backspace -->
+                <Space android:layout_width="80dp" android:layout_height="80dp"/>
+                <Button android:id="@+id/btn0" style="@style/PinButton" android:text="0"/>
+                <ImageButton
+                    android:id="@+id/backspaceBtn"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:src="@drawable/ic_backspace"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:tint="#888888"/>
+            </GridLayout>
+        </LinearLayout>
+
+        <!-- ══════════ PATTERN SECTION ══════════ -->
+        <LinearLayout
+            android:id="@+id/patternSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="visible">
+
+            <TextView
+                android:id="@+id/patternInstructionText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Draw your unlock pattern"
+                android:textColor="#CCCCCC"
+                android:textSize="15sp"
+                android:layout_marginBottom="24dp"/>
+
+            <!-- ✅ Custom Pattern View -->
+            <com.myra.assistant.security.PatternLockView
+                android:id="@+id/patternLockView"
+                android:layout_width="280dp"
+                android:layout_height="280dp"
+                android:layout_gravity="center"/>
+
+            <TextView
+                android:id="@+id/patternAttemptsText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#FFAB40"
+                android:textSize="12sp"
+                android:layout_marginTop="16dp"/>
+        </LinearLayout>
+
+        <!-- ══════════ VOICE SECTION ══════════ -->
+        <LinearLayout
+            android:id="@+id/voiceSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="gone"
+            android:paddingTop="40dp">
+
+            <TextView
+                android:id="@+id/voiceInstructionText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tap mic &amp; say your passphrase"
+                android:textColor="#CCCCCC"
+                android:textSize="15sp"
+                android:gravity="center"
+                android:layout_marginBottom="32dp"/>
+
+            <ImageButton
+                android:id="@+id/voiceUnlockBtn"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:src="@drawable/ic_mic_off"
+                android:background="#22E91E8C"
+                android:tint="#E91E8C"
+                android:padding="16dp"/>
+
+            <TextView
+                android:id="@+id/voiceStatusText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#CCCCCC"
+                android:textSize="13sp"
+                android:layout_marginTop="16dp"/>
+        </LinearLayout>
+
+        <!-- ══════════ FINGER SECTION ══════════ -->
+        <LinearLayout
+            android:id="@+id/fingerSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="gone"
+            android:paddingTop="40dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Authenticate with Fingerprint"
+                android:textColor="#CCCCCC"
+                android:textSize="15sp"
+                android:layout_marginBottom="32dp"/>
+
+            <ImageButton
+                android:id="@+id/fingerBtn"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:src="@drawable/ic_fingerprint"
+                android:background="#22E91E8C"
+                android:tint="#E91E8C"
+                android:padding="20dp"
+                android:scaleType="fitCenter"/>
+
+            <TextView
+                android:id="@+id/fingerStatusText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tap to scan"
+                android:textColor="#CCCCCC"
+                android:textSize="13sp"
+                android:layout_marginTop="16dp"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ══════════ LOCKOUT OVERLAY ══════════ -->
+    <LinearLayout
+        android:id="@+id/lockoutOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="#CC000000"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔒"
+            android:textSize="48sp"/>
+
+        <TextView
+            android:id="@+id/lockoutTimerText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Too many attempts"
+            android:textColor="#FF1744"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginTop="12dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Please wait..."
+            android:textColor="#888888"
+            android:textSize="14sp"
+            android:layout_marginTop="8dp"/>
+    </LinearLayout>
+
+</RelativeLayout>
+
+    <!--
+        ════════════════════════════════════════════════════════
+        AndroidManifest.xml mein add karo:
+        ════════════════════════════════════════════════════════
+
+        <activity
+            android:name=".security.AppLockActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:screenOrientation="portrait"/>
+
+        <activity
+            android:name=".security.SecuritySettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.NoActionBar"/>
+
+        ════════════════════════════════════════════════════════
+        res/values/styles.xml mein add karo:
+        ════════════════════════════════════════════════════════
+
+        <style name="PinButton">
+            <item name="android:layout_width">80dp</item>
+            <item name="android:layout_height">80dp</item>
+            <item name="android:textSize">22sp</item>
+            <item name="android:textColor">#FFFFFF</item>
+            <item name="android:background">@drawable/pin_button_bg</item>
+            <item name="android:textStyle">bold</item>
+        </style>
+
+        ════════════════════════════════════════════════════════
+        MainActivity mein security check:
+        ════════════════════════════════════════════════════════
+
+        override fun onResume() {
+            super.onResume()
+            if ((SecurityManager.isAppLockEnabled(this) || PatternManager.isPatternLockEnabled(this))
+                && !AppLockActivity.isUnlockedThisSession) {
+                AppLockActivity.launch(this)
+            }
+        }
+
+        Settings menu mein add karo:
+        startActivity(Intent(this, SecuritySettingsActivity::class.java))
+        ════════════════════════════════════════════════════════
+    -->

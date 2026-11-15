@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- MYRA Brand Colors -->
+    <color name="myra_red">#FF1744</color>
+    <color name="myra_red_dark">#B71C1C</color>
+    <color name="myra_red_soft">#FF6D6D</color>
+    <color name="myra_purple">#D500F9</color>
+    <color name="myra_purple_light">#EA80FF</color>
+    <color name="myra_cyan">#00E5FF</color>
+    <color name="myra_cyan_dark">#00B8D4</color>
+
+    <!-- Background Colors -->
+    <color name="myra_dark">#040408</color>
+    <color name="myra_dark_2">#08080F</color>
+    <color name="myra_card">#0D0D1A</color>
+    <color name="myra_card_2">#111124</color>
+    <color name="myra_border">#1A1A2E</color>
+
+    <!-- Text Colors -->
+    <color name="myra_text">#E8E8FF</color>
+    <color name="myra_text_dim">#888899</color>
+    <color name="myra_hint">#444466</color>
+
+    <!-- State Colors -->
+    <color name="myra_listening">#00E5FF</color>
+    <color name="myra_thinking">#D500F9</color>
+    <color name="myra_speaking">#FF1744</color>
+    <color name="myra_idle">#FF1744</color>
+
+    <!-- Glow Colors -->
+    <color name="myra_glow_red">#44FF1744</color>
+    <color name="myra_glow_cyan">#4400E5FF</color>
+    <color name="myra_glow_purple">#44D500F9</color>
+
+    <!-- Neon-pink companion theme (home screen) -->
+    <color name="neon_pink">#FF4FD8</color>
+    <color name="neon_pink_soft">#FF9CEB</color>
+    <color name="neon_magenta">#E91ED0</color>
+    <color name="neon_white">#FFF2FC</color>
+    <color name="neon_bg">#12001A</color>
+</resources>

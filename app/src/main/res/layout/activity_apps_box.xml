@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/boxRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <com.myra.assistant.design.DesignBackgroundView
+        android:id="@+id/boxBg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+
+    <LinearLayout
+        android:id="@+id/boxContent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <ImageView
+            android:id="@+id/boxArt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:adjustViewBounds="true"
+            android:importantForAccessibility="no"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:scaleType="fitCenter"
+            android:visibility="gone"/>
+
+        <LinearLayout
+            android:id="@+id/boxTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingTop="14dp"
+            android:paddingBottom="8dp">
+
+            <ImageView
+                android:id="@+id/boxLogo"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:background="@drawable/bg_avatar_ring"
+                android:clipToOutline="true"
+                android:importantForAccessibility="no"
+                android:padding="2dp"
+                android:scaleType="centerCrop"
+                android:src="@drawable/myra_avatar_thumb"/>
+
+            <TextView
+                android:id="@+id/boxName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:fontFamily="sans-serif-medium"
+                android:text="Apps Box"
+                android:textSize="26sp"/>
+
+            <TextView
+                android:id="@+id/boxTag"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Explore • Use • Enjoy"
+                android:textSize="12sp"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/boxSearchBar"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginStart="14dp"
+            android:layout_marginTop="6dp"
+            android:layout_marginEnd="14dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingEnd="8dp">
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔍" android:textSize="18sp"/>
+
+            <EditText
+                android:id="@+id/boxSearch"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:hint="Search Apps..."
+                android:imeOptions="actionSearch|flagNoExtractUi"
+                android:inputType="text"
+                android:maxLines="1"
+                android:textSize="16sp"/>
+
+            <TextView
+                android:id="@+id/boxMic"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:gravity="center"
+                android:text="🎤"
+                android:textSize="20sp"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/boxPreviewBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="14dp"
+            android:background="@drawable/bg_date_chip"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="8dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/boxPreviewText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:paddingStart="8dp"
+                android:text="Preview"
+                android:textColor="#FFFFFFFF"
+                android:textSize="14sp"/>
+
+            <Button
+                android:id="@+id/boxApply"
+                android:layout_width="wrap_content"
+                android:layout_height="42dp"
+                android:minWidth="0dp"
+                android:paddingStart="18dp"
+                android:paddingEnd="18dp"
+                android:stateListAnimator="@null"
+                android:text="✓ Apply"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFFFF"/>
+
+            <TextView
+                android:id="@+id/boxCancel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="10dp"
+                android:text="Cancel"
+                android:textColor="#FFFFFFFF"/>
+        </LinearLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/boxGrid"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:paddingStart="8dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="8dp"
+            android:scrollbars="none"/>
+
+        <LinearLayout
+            android:id="@+id/boxDock"
+            android:layout_width="match_parent"
+            android:layout_height="76dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="10dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:weightSum="5">
+
+            <LinearLayout android:id="@+id/dockHome" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="?attr/selectableItemBackground" android:gravity="center" android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🏠" android:textSize="22sp"/>
+                <TextView android:id="@+id/dockHomeLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Home" android:textSize="11sp"/>
+            </LinearLayout>
+            <LinearLayout android:id="@+id/dockDesigns" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="?attr/selectableItemBackground" android:gravity="center" android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🎨" android:textSize="22sp"/>
+                <TextView android:id="@+id/dockDesignsLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Designs" android:textSize="11sp"/>
+            </LinearLayout>
+            <FrameLayout android:id="@+id/dockCenter" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1">
+                <ImageView android:id="@+id/dockCenterImg" android:layout_width="58dp" android:layout_height="58dp" android:layout_gravity="center" android:background="@drawable/bg_avatar_ring" android:clipToOutline="true" android:contentDescription="Chat" android:padding="2dp" android:scaleType="centerCrop" android:src="@drawable/myra_avatar_thumb"/>
+            </FrameLayout>
+            <LinearLayout android:id="@+id/dockSettings" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="?attr/selectableItemBackground" android:gravity="center" android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="⚙️" android:textSize="22sp"/>
+                <TextView android:id="@+id/dockSettingsLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Settings" android:textSize="11sp"/>
+            </LinearLayout>
+            <LinearLayout android:id="@+id/dockWallpapers" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="?attr/selectableItemBackground" android:gravity="center" android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🎞️" android:textSize="22sp"/>
+                <TextView android:id="@+id/dockWallpapersLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Wallpapers" android:textSize="11sp"/>
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>
