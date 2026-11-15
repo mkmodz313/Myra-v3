@@ -179,6 +179,27 @@
                 android:resource="@xml/myra_wallpaper"/>
         </service>
 
+        <!-- MYRA KEYBOARD (real system keyboard / IME) -->
+        <service
+            android:name=".keyboard.MyraKeyboardService"
+            android:exported="true"
+            android:label="MYRA Keyboard"
+            android:permission="android.permission.BIND_INPUT_METHOD">
+            <intent-filter>
+                <action android:name="android.view.InputMethod"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.view.im"
+                android:resource="@xml/method"/>
+        </service>
+
+        <activity
+            android:name=".keyboard.KeyboardSettingsActivity"
+            android:exported="false"
+            android:label="MYRA Keyboard"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize"/>
+
         <!-- MESSAGE ANNOUNCE (notification access) -->
         <service
             android:name=".service.MessageNotificationListener"

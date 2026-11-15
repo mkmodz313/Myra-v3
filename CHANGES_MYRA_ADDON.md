@@ -92,3 +92,11 @@
 - DesignsActivity: new "Real Home Screen par laga dein" button opens that system prompt.
 - AppDesign.kt: 76 new designs added (nothing removed/changed) - 102 designs total across Premium/Android/iOS.
 - Everything else (voice, mobile data, wallpaper fixes) unchanged from v3.0.0.
+
+## MYRA Keyboard (real system keyboard / IME)
+- keyboard/MyraKeyboardService.kt (InputMethodService: toolbar with emoji, clipboard history, themes, Select-All/Copy/Cut/Paste, settings; works in every app)
+- keyboard/MyraKeyboardView.kt (canvas-drawn keys: 3D / Glass / Flat / Bubble / custom-PNG key styles, long-press alternates, key preview, shift + caps lock, symbols pages)
+- keyboard/KbLayouts.kt (22 languages: English, Hindi, Marathi, Bengali, Punjabi, Gujarati, Odia, Tamil, Telugu, Kannada, Malayalam, Urdu, Arabic, Persian, Spanish, French, German, Portuguese, Italian, Turkish, Russian, Indonesian)
+- keyboard/KbThemes.kt + assets/keyboard/* (12 image themes from the provided designs + 5 generated 3D themes + My Photo/PNG)
+- keyboard/KeyboardSettingsActivity.kt (enable/select keyboard, theme grid, background + key PNG picker, opacity/height, options, languages)
+- res/xml/method.xml, AndroidManifest.xml (service + activity), activity_settings.xml (new "MYRA Keyboard" card), SettingsActivity.kt (click listener)

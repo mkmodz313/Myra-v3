@@ -188,6 +188,10 @@ class SettingsActivity : AppCompatActivity() {
         }
         findViewById<View>(R.id.crashLogBtn).setOnClickListener { showCrashLog() }
 
+        findViewById<View>(R.id.keyboardCard).setOnClickListener {
+            startActivity(Intent(this, com.myra.assistant.keyboard.KeyboardSettingsActivity::class.java))
+        }
+
         findViewById<View>(R.id.designsCard).setOnClickListener {
             startActivity(Intent(this, com.myra.assistant.design.DesignsActivity::class.java))
         }
