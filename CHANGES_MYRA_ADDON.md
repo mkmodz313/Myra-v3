@@ -84,3 +84,11 @@
 - WallpaperDetailActivity: preview now uses TextureView (no more black SurfaceView), centre-crop, safe release
 - "Set wallpaper": every step wrapped, 3 fallback system screens, can no longer crash the app
 - VideoWallpaperService: every callback guarded, surface validity check
+
+## v5: real home screen + 100+ designs (additive only)
+- New HomeLauncherActivity (category HOME + DEFAULT): the SAME themed real-app grid as Apps Box, now
+  usable as the actual phone home screen. User picks it via Android's own "Set as Home" system prompt -
+  MYRA never sets itself as default on its own.
+- DesignsActivity: new "Real Home Screen par laga dein" button opens that system prompt.
+- AppDesign.kt: 76 new designs added (nothing removed/changed) - 102 designs total across Premium/Android/iOS.
+- Everything else (voice, mobile data, wallpaper fixes) unchanged from v3.0.0.

@@ -46,6 +46,7 @@ class DesignsActivity : AppCompatActivity() {
         grid.adapter = adapter
         findViewById<View>(R.id.dsBack).setOnClickListener { finish() }
         findViewById<View>(R.id.dsOpenBox).setOnClickListener { startActivity(Intent(this, AppsBoxActivity::class.java)) }
+        findViewById<View>(R.id.dsSetHome).setOnClickListener { setAsRealHome() }
         buildChips()
         refresh()
     }
@@ -53,6 +54,21 @@ class DesignsActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         adapter.notifyDataSetChanged()      // "Applied" badge may have changed
+    }
+
+    /**
+     * Opens Android's own "choose Home app" prompt - a normal CATEGORY_HOME intent, exactly what every
+     * launcher app uses. The system decides what to show (a "Just once / Always" dialog, or the Home app
+     * settings screen if MYRA is already the only other option) - MYRA never sets itself as the home app
+     * directly, because no app is allowed to do that; only the person can confirm it on this system screen.
+     */
+    private fun setAsRealHome() {
+        try {
+            startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        } catch (_: Exception) {
+            try { startActivity(android.content.Intent(android.provider.Settings.ACTION_HOME_SETTINGS)) }
+            catch (_: Exception) { android.widget.Toast.makeText(this, "Is phone par home app badalna available nahi", android.widget.Toast.LENGTH_SHORT).show() }
+        }
     }
 
     private fun buildChips() {
