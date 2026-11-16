@@ -7,6 +7,11 @@ import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.PathMeasure
+import android.graphics.SweepGradient
+import android.graphics.Matrix
+import android.animation.ValueAnimator
+import android.view.animation.LinearInterpolator
 import android.graphics.RadialGradient
 import android.graphics.RectF
 import android.graphics.Shader
@@ -96,11 +101,18 @@ class MyraKeyboardView(context: Context) : View(context) {
         var gloss: Shader? = null
         var edge: Shader? = null
         var shade: Shader? = null
+        var beads: FloatArray? = null
     }
 
     var listener: Listener? = null
     var kbTheme: KbTheme = KbThemes.byId("pinkheart")
     var style: String = "3d"
+        set(v) {
+            field = v
+            updateAnim()
+        }
+    /** Letters shown on the keys can be re-drawn in a stylish font (set by the service). */
+    var labelMap: ((String) -> String)? = null
     var opacity: Int = 80
     var rowH: Float = 0f
     var showHints = true
@@ -196,7 +208,68 @@ class MyraKeyboardView(context: Context) : View(context) {
 
     override fun onDetachedFromWindow() {
         cancelAll()
+        animator?.cancel()
+        animator = null
         super.onDetachedFromWindow()
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        updateAnim()
+    }
+
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        updateAnim()
+    }
+
+    // ---- animated rainbow border ----
+    private var animator: ValueAnimator? = null
+    private var phase = 0f
+    private val rotM = Matrix()
+
+    private fun updateAnim() {
+        val need = style == "rainbow" && isAttachedToWindow && windowVisibility == View.VISIBLE
+        if (need && animator == null) {
+            val a = ValueAnimator.ofFloat(0f, 360f)
+            a.duration = 4200L
+            a.repeatCount = ValueAnimator.INFINITE
+            a.interpolator = LinearInterpolator()
+            a.addUpdateListener {
+                phase = it.animatedValue as Float
+                invalidate()
+            }
+            animator = a
+            a.start()
+        } else if (!need) {
+            animator?.cancel()
+            animator = null
+        }
+    }
+
+    private fun rainbowColors(): IntArray = intArrayOf(
+        0xFFFF2BD6.toInt(), 0xFFFF7A18.toInt(), 0xFFFFE600.toInt(), 0xFF2BFF6A.toInt(),
+        0xFF1ED8FF.toInt(), 0xFF3D6BFF.toInt(), 0xFF9B3DFF.toInt(), 0xFFFF2BD6.toInt()
+    )
+
+    private fun hueColor(h: Float): Int =
+        Color.HSVToColor(floatArrayOf(((h % 360f) + 360f) % 360f, 0.82f, 1f))
+
+    private fun neonColors(): IntArray {
+        val hsv = FloatArray(3)
+        Color.colorToHSV(kbTheme.accent, hsv)
+        val h = hsv[0]
+        return intArrayOf(hueColor(h), hueColor(h + 55f), hueColor(h + 115f), hueColor(h + 55f), hueColor(h))
+    }
+
+    private fun faceDark(b: Int): Int = blend(b, Color.BLACK, if (kbTheme.dark) 0.30f else 0.62f)
+
+    private fun shownLabel(k: Key): String {
+        val m = labelMap
+        if (m != null && mode == M_LETTERS && k.type == T_CHAR && k.display.isNotEmpty() &&
+            Character.isLetter(k.display.codePointAt(0))
+        ) return m(k.display)
+        return k.display
     }
 
     // ------------------------------------------------------------------ layout building
@@ -324,6 +397,7 @@ class MyraKeyboardView(context: Context) : View(context) {
         k.gloss = null
         k.edge = null
         k.shade = null
+        k.beads = null
         val r = k.rect
         if (r.width() <= 0f) return
         val b = baseColor(k)
@@ -360,6 +434,68 @@ class MyraKeyboardView(context: Context) : View(context) {
                     r.left, r.top, r.left, r.top + r.height() * 0.55f,
                     0x70FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP
                 )
+            }
+            "neon", "rainbow" -> {
+                k.edge = SweepGradient(r.centerX(), r.centerY(), if (style == "rainbow") rainbowColors() else neonColors(), null)
+                val face = faceDark(b)
+                k.body = LinearGradient(
+                    r.left, r.top, r.left, r.bottom,
+                    intArrayOf(withOp(blend(face, Color.WHITE, 0.20f)), withOp(face), withOp(blend(face, Color.BLACK, 0.35f))),
+                    floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP
+                )
+                k.gloss = LinearGradient(
+                    r.left, r.top, r.left, r.top + r.height() * 0.5f,
+                    0x5CFFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP
+                )
+            }
+            "glossy" -> {
+                val face = faceDark(b)
+                k.body = LinearGradient(
+                    r.left, r.top, r.left, r.bottom,
+                    intArrayOf(withOp(blend(face, Color.WHITE, 0.16f)), withOp(face), withOp(blend(face, Color.BLACK, 0.45f))),
+                    floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP
+                )
+                k.gloss = LinearGradient(
+                    r.left, r.top, r.left, r.top + r.height() * 0.52f,
+                    0x7AFFFFFF, 0x08FFFFFF, Shader.TileMode.CLAMP
+                )
+                k.shade = LinearGradient(
+                    r.left, r.top + r.height() * 0.6f, r.left, r.bottom,
+                    0x00000000, (kbTheme.accent and 0x00FFFFFF) or (0x70 shl 24), Shader.TileMode.CLAMP
+                )
+            }
+            "jewel" -> {
+                val top = if (k.type == T_CHAR || k.type == T_SPACE) blend(b, Color.WHITE, 0.62f) else blend(b, Color.WHITE, 0.38f)
+                k.body = LinearGradient(
+                    r.left, r.top, r.left, r.bottom,
+                    intArrayOf(withOp(top), withOp(blend(b, Color.WHITE, 0.12f)), withOp(blend(b, Color.BLACK, 0.18f))),
+                    floatArrayOf(0f, 0.55f, 1f), Shader.TileMode.CLAMP
+                )
+                k.gloss = LinearGradient(
+                    r.left, r.top, r.left, r.top + r.height() * 0.5f,
+                    0x99FFFFFF.toInt(), 0x00FFFFFF, Shader.TileMode.CLAMP
+                )
+                k.edge = LinearGradient(
+                    r.left, r.top, r.left, r.bottom,
+                    blend(kbTheme.accent or (0xFF shl 24), Color.WHITE, 0.55f),
+                    blend(kbTheme.accent or (0xFF shl 24), Color.BLACK, 0.35f),
+                    Shader.TileMode.CLAMP
+                )
+                val path = Path()
+                val ins = dp(2.6f)
+                val rr = RectF(r.left + ins, r.top + ins, r.right - ins, r.bottom - ins)
+                path.addRoundRect(rr, dp(8f), dp(8f), Path.Direction.CW)
+                val pm = PathMeasure(path, true)
+                val len = pm.length
+                val n = maxOf(8, (len / dp(4.6f)).toInt())
+                val arr = FloatArray(n * 2)
+                val pos = FloatArray(2)
+                for (i in 0 until n) {
+                    pm.getPosTan(len * i / n, pos, null)
+                    arr[i * 2] = pos[0]
+                    arr[i * 2 + 1] = pos[1]
+                }
+                k.beads = arr
             }
             "bubble" -> {
                 val rad = maxOf(r.width(), r.height()) * 0.75f
@@ -418,6 +554,9 @@ class MyraKeyboardView(context: Context) : View(context) {
                         paint.shader = null
                     }
                 }
+                "neon", "rainbow" -> drawNeon(c, k, r, rad, base)
+                "glossy" -> drawGlossy(c, k, r, rad, base)
+                "jewel" -> drawJewel(c, k, r, rad, base)
                 "flat" -> {
                     paint.shader = null
                     paint.color = withOp(if (k.pressed) blend(base, kbTheme.accent, 0.45f) else base)
@@ -514,6 +653,207 @@ class MyraKeyboardView(context: Context) : View(context) {
         drawContent(c, k, r)
     }
 
+    private fun fillFace(c: Canvas, k: Key, r: RectF, rad: Float, base: Int) {
+        val bd = k.body
+        if (k.pressed || bd == null) {
+            paint.shader = null
+            paint.color = withOp(blend(base, kbTheme.accent, 0.45f))
+        } else {
+            paint.shader = bd
+            paint.color = Color.WHITE
+        }
+        c.drawRoundRect(r, rad, rad, paint)
+        paint.shader = null
+    }
+
+    private fun drawGloss(c: Canvas, k: Key, r: RectF, rad: Float, inset: Float) {
+        val g = k.gloss ?: return
+        if (k.pressed) return
+        paint.shader = g
+        paint.color = Color.WHITE
+        tmp2.set(r.left + inset, r.top + inset, r.right - inset, r.top + r.height() * 0.5f)
+        c.drawRoundRect(tmp2, maxOf(1f, rad - inset), maxOf(1f, rad - inset), paint)
+        paint.shader = null
+    }
+
+    /** Neon / rainbow: dark glass key + glowing multi-colour border (rainbow = border colours keep moving). */
+    private fun drawNeon(c: Canvas, k: Key, r: RectF, rad: Float, base: Int) {
+        fillFace(c, k, r, rad, faceDark(base))
+        drawGloss(c, k, r, rad, dp(2.4f))
+        val e = k.edge
+        if (e != null) {
+            if (style == "rainbow") {
+                rotM.setRotate(phase, r.centerX(), r.centerY())
+                e.setLocalMatrix(rotM)
+            }
+            val old = strokePaint.strokeWidth
+            strokePaint.shader = e
+            strokePaint.color = Color.WHITE
+            tmp2.set(r)
+            val glow = if (k.pressed) 1.0f else 0.7f
+            strokePaint.strokeWidth = dp(7f)
+            strokePaint.alpha = (45 * glow).toInt()
+            c.drawRoundRect(tmp2, rad, rad, strokePaint)
+            strokePaint.strokeWidth = dp(4.2f)
+            strokePaint.alpha = (95 * glow).toInt()
+            c.drawRoundRect(tmp2, rad, rad, strokePaint)
+            tmp2.inset(dp(0.9f), dp(0.9f))
+            strokePaint.strokeWidth = dp(2.3f)
+            strokePaint.alpha = 255
+            c.drawRoundRect(tmp2, rad - dp(0.9f), rad - dp(0.9f), strokePaint)
+            strokePaint.shader = null
+            strokePaint.strokeWidth = dp(0.8f)
+            strokePaint.color = Color.argb(110, 255, 255, 255)
+            tmp2.inset(dp(1.7f), dp(1.7f))
+            c.drawRoundRect(tmp2, maxOf(1f, rad - dp(2.6f)), maxOf(1f, rad - dp(2.6f)), strokePaint)
+            strokePaint.strokeWidth = old
+        }
+        drawGlint(c, k, r)
+    }
+
+    /** Glossy black glass key with a light rim and a coloured reflection at the bottom. */
+    private fun drawGlossy(c: Canvas, k: Key, r: RectF, rad: Float, base: Int) {
+        if (!k.pressed) {
+            paint.shader = null
+            paint.color = Color.argb((90 * opacity / 100).coerceIn(0, 255), 0, 0, 0)
+            tmp2.set(r)
+            tmp2.offset(0f, dp(3f))
+            c.drawRoundRect(tmp2, rad, rad, paint)
+        }
+        fillFace(c, k, r, rad, faceDark(base))
+        val sh = k.shade
+        if (sh != null && !k.pressed) {
+            paint.shader = sh
+            paint.color = Color.WHITE
+            c.drawRoundRect(r, rad, rad, paint)
+            paint.shader = null
+        }
+        val old = strokePaint.strokeWidth
+        strokePaint.shader = null
+        strokePaint.strokeWidth = dp(1.6f)
+        strokePaint.color = 0xCC000000.toInt()
+        c.drawRoundRect(r, rad, rad, strokePaint)
+        strokePaint.strokeWidth = dp(1f)
+        strokePaint.color = Color.argb(150, 255, 255, 255)
+        tmp2.set(r)
+        tmp2.inset(dp(1.3f), dp(1.3f))
+        c.drawRoundRect(tmp2, rad - dp(1.2f), rad - dp(1.2f), strokePaint)
+        strokePaint.strokeWidth = old
+        drawGloss(c, k, r, rad, dp(2.2f))
+        // diagonal sheen across the glass
+        if (!k.pressed) {
+            val save = c.save()
+            tmpPath.reset()
+            tmpPath.addRoundRect(r, rad, rad, Path.Direction.CW)
+            c.clipPath(tmpPath)
+            tmpPath.reset()
+            tmpPath.moveTo(r.left + r.width() * 0.55f, r.top)
+            tmpPath.lineTo(r.left + r.width() * 0.78f, r.top)
+            tmpPath.lineTo(r.left + r.width() * 0.30f, r.bottom)
+            tmpPath.lineTo(r.left + r.width() * 0.07f, r.bottom)
+            tmpPath.close()
+            paint.shader = null
+            paint.color = Color.argb(26, 255, 255, 255)
+            c.drawPath(tmpPath, paint)
+            c.restoreToCount(save)
+        }
+        drawGlint(c, k, r)
+    }
+
+    private val tmpPath = Path()
+
+    /** Little shining star glints on the corners of a key (all shiny designs). */
+    private fun drawGlint(c: Canvas, k: Key, r: RectF) {
+        if (k.pressed || r.width() < dp(20f)) return
+        val h = Math.abs(k.label.hashCode())
+        glint(c, r.left + dp(8f), r.top + dp(5.5f), dp(4.6f), 235)
+        if (h % 2 == 0) glint(c, r.right - dp(9f), r.bottom - dp(6f), dp(3.4f), 170)
+        if (h % 3 == 0) glint(c, r.right - dp(7f), r.top + dp(6f), dp(2.6f), 140)
+    }
+
+    private fun glint(c: Canvas, x: Float, y: Float, s: Float, a: Int) {
+        tmpPath.reset()
+        tmpPath.moveTo(x, y - s)
+        tmpPath.quadTo(x + s * 0.12f, y - s * 0.12f, x + s, y)
+        tmpPath.quadTo(x + s * 0.12f, y + s * 0.12f, x, y + s)
+        tmpPath.quadTo(x - s * 0.12f, y + s * 0.12f, x - s, y)
+        tmpPath.quadTo(x - s * 0.12f, y - s * 0.12f, x, y - s)
+        tmpPath.close()
+        paint.shader = null
+        paint.color = Color.argb(a / 3, 255, 255, 255)
+        c.drawCircle(x, y, s * 1.25f, paint)
+        paint.color = Color.argb(a, 255, 255, 255)
+        c.drawPath(tmpPath, paint)
+    }
+
+    private fun heartAt(cx: Float, cy: Float, s: Float): Path {
+        tmpPath.reset()
+        tmpPath.moveTo(cx, cy + s * 0.9f)
+        tmpPath.cubicTo(cx - s * 1.5f, cy - s * 0.1f, cx - s * 0.8f, cy - s * 1.3f, cx, cy - s * 0.45f)
+        tmpPath.cubicTo(cx + s * 0.8f, cy - s * 1.3f, cx + s * 1.5f, cy - s * 0.1f, cx, cy + s * 0.9f)
+        tmpPath.close()
+        return tmpPath
+    }
+
+    /** Jewel key: shiny silver face, thick 3D wall, coloured rim, ring of pearls and a small heart. */
+    private fun drawJewel(c: Canvas, k: Key, r: RectF, rad: Float, base: Int) {
+        val acc = kbTheme.accent or (0xFF shl 24)
+        if (!k.pressed) {
+            paint.shader = null
+            paint.color = Color.argb((60 * opacity / 100).coerceIn(0, 255), 0, 0, 0)
+            tmp2.set(r)
+            tmp2.inset(-dp(0.8f), 0f)
+            tmp2.offset(0f, dp(4.6f))
+            c.drawRoundRect(tmp2, rad + dp(1f), rad + dp(1f), paint)
+            paint.color = withOp(blend(blend(base, Color.BLACK, 0.5f), acc, 0.2f))
+            tmp2.set(r)
+            tmp2.offset(0f, dp(3f))
+            c.drawRoundRect(tmp2, rad, rad, paint)
+        }
+        fillFace(c, k, r, rad, base)
+        val old = strokePaint.strokeWidth
+        val ed = k.edge
+        strokePaint.strokeWidth = dp(1.7f)
+        if (ed != null) {
+            strokePaint.shader = ed
+            strokePaint.color = Color.WHITE
+        } else {
+            strokePaint.color = acc
+        }
+        tmp2.set(r)
+        tmp2.inset(dp(0.85f), dp(0.85f))
+        c.drawRoundRect(tmp2, rad - dp(0.8f), rad - dp(0.8f), strokePaint)
+        strokePaint.shader = null
+        strokePaint.strokeWidth = old
+        drawGloss(c, k, r, rad, dp(3.2f))
+        // pearls / diamonds all around the key
+        val bd = k.beads
+        if (bd != null) {
+            val dy = if (k.pressed) dp(1.2f) else 0f
+            var i = 0
+            while (i < bd.size) {
+                val x = bd[i]
+                val y = bd[i + 1] + dy
+                paint.shader = null
+                paint.color = Color.argb(70, 0, 0, 0)
+                c.drawCircle(x + dp(0.5f), y + dp(0.7f), dp(1.45f), paint)
+                paint.color = Color.argb(245, 255, 255, 255)
+                c.drawCircle(x, y, dp(1.4f), paint)
+                paint.color = Color.argb(150, 200, 205, 225)
+                c.drawCircle(x + dp(0.3f), y + dp(0.35f), dp(0.7f), paint)
+                i += 2
+            }
+        }
+        if (k.type == T_CHAR && r.width() > dp(26f)) {
+            paint.shader = null
+            paint.color = acc
+            c.drawPath(heartAt(r.left + dp(9f), r.top + dp(9f), dp(3.6f)), paint)
+            paint.color = Color.argb(170, 255, 255, 255)
+            c.drawCircle(r.left + dp(7.6f), r.top + dp(6.9f), dp(0.9f), paint)
+        }
+        drawGlint(c, k, r)
+    }
+
     private fun drawLabel(
         c: Canvas, s: String, cx: Float, cy: Float, size: Float, color: Int, maxW: Float, bold: Boolean = false
     ) {
@@ -523,7 +863,9 @@ class MyraKeyboardView(context: Context) : View(context) {
         val w = textPaint.measureText(s)
         if (w > maxW && w > 0f) textPaint.textSize = size * maxW / w
         val fm = textPaint.fontMetrics
-        if (style == "3d") {
+        if (style == "neon" || style == "rainbow") {
+            textPaint.setShadowLayer(dp(5f), 0f, 0f, kbTheme.accent or (0xFF shl 24))
+        } else if (style == "3d" || style == "jewel" || style == "glossy") {
             textPaint.setShadowLayer(
                 dp(1.3f), 0f, dp(1.2f),
                 if (kbTheme.dark) 0xCC000000.toInt() else 0xB8FFFFFF.toInt()
@@ -543,7 +885,7 @@ class MyraKeyboardView(context: Context) : View(context) {
         val maxW = r.width() * 0.9f
         when (k.type) {
             T_CHAR -> {
-                drawLabel(c, k.display, cx, cy, rowH * 0.40f, tc, maxW)
+                drawLabel(c, shownLabel(k), cx, cy, rowH * 0.40f, tc, maxW)
                 val h = k.hint
                 if (h != null && showHints && mode == M_LETTERS) {
                     hintPaint.textSize = rowH * 0.2f
@@ -671,7 +1013,7 @@ class MyraKeyboardView(context: Context) : View(context) {
         c.drawRoundRect(tmp, dp(12f), dp(12f), paint)
         strokePaint.color = kbTheme.accent
         c.drawRoundRect(tmp, dp(12f), dp(12f), strokePaint)
-        drawLabel(c, k.display, tmp.centerX(), tmp.centerY(), rowH * 0.62f, kbTheme.text, w * 0.85f)
+        drawLabel(c, shownLabel(k), tmp.centerX(), tmp.centerY(), rowH * 0.62f, kbTheme.text, w * 0.85f)
     }
 
     private fun drawAltPopup(c: Canvas) {

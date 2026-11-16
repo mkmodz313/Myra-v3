@@ -37,7 +37,11 @@ object KbPrefs {
     fun setThemeId(c: Context, v: String) = putS(c, "theme", v)
 
     /** 3d | glass | flat | bubble | png */
-    fun style(c: Context): String = sp(c).getString("style", "") ?: ""
+    /** Old plain styles (3D / glass / flat / bubble) are retired: they fall back to the shiny design of the theme. */
+    fun style(c: Context): String {
+        val v = sp(c).getString("style", "") ?: ""
+        return if (v == "3d" || v == "glass" || v == "flat" || v == "bubble") "" else v
+    }
     fun setStyle(c: Context, v: String) = putS(c, "style", v)
 
     /** Key opacity 20..100 */

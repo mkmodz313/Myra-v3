@@ -111,3 +111,8 @@
 - assets/keyboard/bg_*.jpg + pv_*.jpg – 14 new 2160x1400 designs (galaxy, aurora, sunset, ocean, gold, emerald, rosebokeh, synthwave, marble, carbon, ice, lavender, islamic, crimson); KbThemes.kt registers each with its own matching key / box / text / border colours
 - keyboard/KbFonts.kt (new) – 30 decoration font styles (꧁ABC꧂ etc.) + 17 more letter fonts (bold, script, gothic, circle, small caps...); KbPrefs.fontStyle remembers the choice
 - keyboard/MyraKeyboardService.kt – new "Aa" toolbar button + Font Style panel; live typing in the chosen style (per word), Convert button for selected/whole text
+- keyboard/MyraKeyboardView.kt – 4 new key designs: Jewel (silver key, pearl border, heart), Neon (glowing coloured border), Rainbow (animated moving rainbow border), Glossy (black glass); keys show the chosen font letters
+- keyboard/KbFonts.kt – 30 different letter fonts (no symbol wrappers); hidden automatically if the phone cannot draw them
+- keyboard/KbSuggest.kt (new) + service – suggestion strip above the keys (3 words; learns the words you type)
+- assets/keyboard – 3 new designs: neonlights, pinkgalaxy, diamondheart
+- Old plain key styles (3D / glass / flat / bubble) retired: every theme now uses the shiny Jewel / Neon / Rainbow / Glossy key designs (+ corner star glints)

@@ -15,33 +15,34 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
 /**
- * One font / decoration style. render() turns the plain letters the user typed into the styled text.
- * pre/post = decoration put around the word, sep = separator put between every letter,
- * tf = optional letter converter (bold, script, fullwidth ...).
+ * One font style: tf turns plain letters into the stylish letters, reverse flips the order (upside down).
+ * keycap() is what the keys of the keyboard show when this font is active.
  */
 class KbFontStyle(
     val id: String,
     val name: String,
-    val pre: String = "",
-    val post: String = "",
-    val sep: String = "",
+    val reverse: Boolean = false,
     val tf: ((String) -> String)? = null
 ) {
+    fun keycap(s: String): String {
+        val f = tf
+        return if (f != null) f(s) else s
+    }
+
     fun render(raw: String): String {
         val f = tf
         var body = if (f != null) f(raw) else raw
-        if (sep.isNotEmpty()) {
-            val sb = StringBuilder(sep)
-            var i = 0
-            while (i < body.length) {
-                val c = body.codePointAt(i)
-                val n = Character.charCount(c)
-                sb.append(body, i, i + n).append(sep)
-                i += n
+        if (reverse) {
+            val sb = StringBuilder()
+            var i = body.length
+            while (i > 0) {
+                val c = body.codePointBefore(i)
+                sb.appendCodePoint(c)
+                i -= Character.charCount(c)
             }
             body = sb.toString()
         }
-        return pre + body + post
+        return body
     }
 }
 
@@ -66,6 +67,45 @@ object KbFonts {
         sb.toString()
     }
 
+    private fun parts(s: String): List<String> {
+        val out = ArrayList<String>()
+        var i = 0
+        while (i < s.length) {
+            val c = s.codePointAt(i)
+            out.add(cp(c))
+            i += Character.charCount(c)
+        }
+        return out
+    }
+
+    /** upper = 26 look-alike letters (A..Z); lower = 26 more or null (then upper is used for both). */
+    private fun tableMap(upper: String, lower: String? = null, digits: String? = null): (String) -> String {
+        val u = parts(upper)
+        val l = parts(lower ?: upper)
+        val d = if (digits != null) parts(digits) else emptyList()
+        return { s ->
+            val sb = StringBuilder()
+            for (ch in s) {
+                when {
+                    ch in 'A'..'Z' -> sb.append(u[ch - 'A'])
+                    ch in 'a'..'z' -> sb.append(l[ch - 'a'])
+                    ch in '0'..'9' && d.size == 10 -> sb.append(d[ch - '0'])
+                    else -> sb.append(ch)
+                }
+            }
+            sb.toString()
+        }
+    }
+
+    private fun combine(mark: Char): (String) -> String = { s ->
+        val sb = StringBuilder()
+        for (ch in s) {
+            sb.append(ch)
+            if (ch.isLetterOrDigit()) sb.append(mark)
+        }
+        sb.toString()
+    }
+
     private val full: (String) -> String = { s ->
         val sb = StringBuilder()
         for (ch in s) {
@@ -74,6 +114,43 @@ object KbFonts {
         sb.toString()
     }
 
+    private fun circledDigits(): Map<Char, String> {
+        val ex = HashMap<Char, String>()
+        ex['0'] = "⓪"
+        for (d in 1..9) ex['0' + d] = cp(0x2460 + d - 1)
+        return ex
+    }
+
+    private fun negCircledDigits(): Map<Char, String> {
+        val ex = HashMap<Char, String>()
+        ex['0'] = "⓿"
+        for (d in 1..9) ex['0' + d] = cp(0x2776 + d - 1)
+        return ex
+    }
+
+    private fun parenDigits(): Map<Char, String> {
+        val ex = HashMap<Char, String>()
+        for (d in 1..9) ex['0' + d] = cp(0x2474 + d - 1)
+        return ex
+    }
+
+    private fun upperOnly(f: (String) -> String): (String) -> String = { s -> f(s.uppercase()) }
+
+    private val script = mathMap(
+        0x1D49C, 0x1D4B6, -1,
+        mapOf(
+            'B' to "ℬ", 'E' to "ℰ", 'F' to "ℱ", 'H' to "ℋ", 'I' to "ℐ", 'L' to "ℒ", 'M' to "ℳ", 'R' to "ℛ",
+            'e' to "ℯ", 'g' to "ℊ", 'o' to "ℴ"
+        )
+    )
+    private val fraktur = mathMap(
+        0x1D504, 0x1D51E, -1,
+        mapOf('C' to "ℭ", 'H' to "ℌ", 'I' to "ℑ", 'R' to "ℜ", 'Z' to "ℨ")
+    )
+    private val dbl = mathMap(
+        0x1D538, 0x1D552, 0x1D7D8,
+        mapOf('C' to "ℂ", 'H' to "ℍ", 'N' to "ℕ", 'P' to "ℙ", 'Q' to "ℚ", 'R' to "ℝ", 'Z' to "ℤ")
+    )
     private val SMALL = "ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘǫʀꜱᴛᴜᴠᴡxʏᴢ"
     private val smallCaps: (String) -> String = { s ->
         val sb = StringBuilder()
@@ -84,100 +161,64 @@ object KbFonts {
         sb.toString()
     }
 
-    private val squared: (String) -> String = { s ->
-        val sb = StringBuilder()
-        for (ch in s) {
-            val u = ch.uppercaseChar()
-            if (u in 'A'..'Z') sb.append(cp(0x1F130 + (u - 'A'))) else sb.append(ch)
-        }
-        sb.toString()
-    }
-
-    private val circled: (String) -> String = run {
-        val ex = HashMap<Char, String>()
-        ex['0'] = "⓪"
-        for (d in 1..9) ex['0' + d] = cp(0x2460 + d - 1)
-        mathMap(0x24B6, 0x24D0, -1, ex)
-    }
-
-    private val negCircled: (String) -> String = run {
-        val ex = HashMap<Char, String>()
-        ex['0'] = "⓿"
-        for (d in 1..9) ex['0' + d] = cp(0x2776 + d - 1)
-        val up = mathMap(0x1F150, 0x1F150, -1, ex)
-        val f: (String) -> String = { s -> up(s.uppercase()) }
-        f
-    }
-
-    private val dbl = mathMap(
-        0x1D538, 0x1D552, 0x1D7D8,
-        mapOf('C' to "ℂ", 'H' to "ℍ", 'N' to "ℕ", 'P' to "ℙ", 'Q' to "ℚ", 'R' to "ℝ", 'Z' to "ℤ")
-    )
-    private val bold = mathMap(0x1D400, 0x1D41A, 0x1D7CE)
-    private val italic = mathMap(0x1D434, 0x1D44E, -1, mapOf('h' to "ℎ"))
-    private val boldItalic = mathMap(0x1D468, 0x1D482)
-    private val scriptBold = mathMap(0x1D4D0, 0x1D4EA)
-    private val frakturBold = mathMap(0x1D56C, 0x1D586)
-    private val mono = mathMap(0x1D670, 0x1D68A, 0x1D7F6)
-    private val sansBold = mathMap(0x1D5D4, 0x1D5EE, 0x1D7EC)
-
     val normal = KbFontStyle("normal", "Normal (default)")
 
-    private fun w(n: Int, pre: String, post: String, tf: ((String) -> String)? = null) =
-        KbFontStyle("s%02d".format(n), "%02d".format(n), pre, post, "", tf)
-
-    /** The 30 decoration styles + extra letter fonts. */
+    /** 30 different modern fonts (letter shapes only - no decoration symbols). */
     val all: List<KbFontStyle> = listOf(
         normal,
-        w(1, "꧁", "꧂"),
-        w(2, "𓆩", "𓆪"),
-        w(3, "『", "』", full),
-        w(4, "乂", "乂", full),
-        w(5, "メ", "メ"),
-        w(6, "亗", "亗"),
-        w(7, "么", "么"),
-        w(8, "༺", "༻"),
-        w(9, "࿐", "࿐"),
-        w(10, "〆", "〆"),
-        w(11, "♛", "♛"),
-        w(12, "♕", "♕"),
-        w(13, "✧･ﾟ", "･ﾟ✧"),
-        w(14, "⫷", "⫸"),
-        w(15, "◥", "◤"),
-        KbFontStyle("s16", "16", "", "", "░"),
-        w(17, "꧁༒", "༒꧂"),
-        w(18, "𖤍", "𖤍"),
-        w(19, "ᯓ", "ᯓ"),
-        w(20, "⸙", "⸙"),
-        w(21, "༄", "࿐"),
-        w(22, "𓂀", "𓂀"),
-        w(23, "𒆜", "𒆜"),
-        w(24, "⟡", "⟡"),
-        w(25, "⋆｡°✩", "✩°｡⋆"),
-        w(26, "『亗』", "『亗』"),
-        w(27, "乛", "乛"),
-        w(28, "⌁", "⌁"),
-        w(29, "𖣘", "𖣘"),
-        w(30, "꧁𓊈𒆜", "𒆜𓊉꧂"),
-        // ---- more fonts (letters change shape) ----
-        KbFontStyle("f_bold", "Bold", tf = bold),
-        KbFontStyle("f_italic", "Italic", tf = italic),
-        KbFontStyle("f_bolditalic", "Bold Italic", tf = boldItalic),
-        KbFontStyle("f_sans", "Sans Bold", tf = sansBold),
-        KbFontStyle("f_script", "Script", tf = scriptBold),
-        KbFontStyle("f_gothic", "Gothic", tf = frakturBold),
-        KbFontStyle("f_double", "Double Line", tf = dbl),
-        KbFontStyle("f_mono", "Typewriter", tf = mono),
-        KbFontStyle("f_circle", "Circle", tf = circled),
-        KbFontStyle("f_negcircle", "Black Circle", tf = negCircled),
-        KbFontStyle("f_square", "Square", tf = squared),
-        KbFontStyle("f_small", "Small Caps", tf = smallCaps),
-        KbFontStyle("f_full", "Wide", tf = full),
-        KbFontStyle("c_script", "Script ꧁ ꧂", "꧁", "꧂", tf = scriptBold),
-        KbFontStyle("c_gothic", "Gothic ༺ ༻", "༺", "༻", tf = frakturBold),
-        KbFontStyle("c_bold", "Bold ♛", "♛", "♛", tf = bold),
-        KbFontStyle("c_circle", "Circle ✧ ✧", "✧", "✧", tf = circled)
+        KbFontStyle("f01", "Bold", tf = mathMap(0x1D400, 0x1D41A, 0x1D7CE)),
+        KbFontStyle("f02", "Italic", tf = mathMap(0x1D434, 0x1D44E, -1, mapOf('h' to "ℎ"))),
+        KbFontStyle("f03", "Bold Italic", tf = mathMap(0x1D468, 0x1D482)),
+        KbFontStyle("f04", "Script", tf = script),
+        KbFontStyle("f05", "Bold Script", tf = mathMap(0x1D4D0, 0x1D4EA)),
+        KbFontStyle("f06", "Fraktur", tf = fraktur),
+        KbFontStyle("f07", "Bold Fraktur", tf = mathMap(0x1D56C, 0x1D586)),
+        KbFontStyle("f08", "Double Line", tf = dbl),
+        KbFontStyle("f09", "Sans", tf = mathMap(0x1D5A0, 0x1D5BA, 0x1D7E2)),
+        KbFontStyle("f10", "Sans Bold", tf = mathMap(0x1D5D4, 0x1D5EE, 0x1D7EC)),
+        KbFontStyle("f11", "Sans Italic", tf = mathMap(0x1D608, 0x1D622, 0x1D7E2)),
+        KbFontStyle("f12", "Sans Bold Italic", tf = mathMap(0x1D63C, 0x1D656, 0x1D7EC)),
+        KbFontStyle("f13", "Typewriter", tf = mathMap(0x1D670, 0x1D68A, 0x1D7F6)),
+        KbFontStyle("f14", "Bubble", tf = mathMap(0x24B6, 0x24D0, -1, circledDigits())),
+        KbFontStyle("f15", "Black Bubble", tf = upperOnly(mathMap(0x1F150, 0x1F150, -1, negCircledDigits()))),
+        KbFontStyle("f16", "Square", tf = upperOnly(mathMap(0x1F130, 0x1F130))),
+        KbFontStyle("f17", "Black Square", tf = upperOnly(mathMap(0x1F170, 0x1F170))),
+        KbFontStyle("f18", "Bracket", tf = mathMap(0x1F110, 0x249C, -1, parenDigits())),
+        KbFontStyle("f19", "Wide", tf = full),
+        KbFontStyle("f20", "Small Caps", tf = smallCaps),
+        KbFontStyle(
+            "f21", "Tiny",
+            tf = tableMap(
+                "ᵃᵇᶜᵈᵉᶠᵍʰⁱʲᵏˡᵐⁿᵒᵖᑫʳˢᵗᵘᵛʷˣʸᶻ", null, "⁰¹²³⁴⁵⁶⁷⁸⁹"
+            )
+        ),
+        KbFontStyle(
+            "f22", "Upside Down", reverse = true,
+            tf = tableMap("∀ᗺƆᗡƎℲ⅁HIſ⋊˥WNOԀꝹᴚS⊥∩ΛMX⅄Z", "ɐqɔpǝɟƃɥᴉɾʞlɯuodbɹsʇnʌʍxʎz")
+        ),
+        KbFontStyle("f23", "Canadian", tf = tableMap("ᗩᗷᑕᗪᗴᖴᘜᕼᎥᒍᛕᒪᗰᑎᗝᑭᑫᖇᔕ丅ᑌᐯᗯ᙭Ƴᘔ")),
+        KbFontStyle("f24", "Kanji", tf = tableMap("卂乃匚刀乇下厶卄工丁长乚从ん口尸㔿尺丂丅凵リ山乂丫乙")),
+        KbFontStyle("f25", "Cash", tf = tableMap("₳฿₵ĐɆ₣₲ⱧłJ₭Ⱡ₥₦Ø₱QⱤ₴₮ɄV₩ӾɎⱫ")),
+        KbFontStyle("f26", "Strike", tf = combine('\u0336')),
+        KbFontStyle("f27", "Underline", tf = combine('\u0332')),
+        KbFontStyle("f28", "Slash", tf = combine('\u0338')),
+        KbFontStyle("f29", "Double Underline", tf = combine('\u0333')),
+        KbFontStyle("f30", "Tilde", tf = combine('\u0303'))
     )
+
+    private var visibleCache: List<KbFontStyle>? = null
+
+    /** Only the fonts this phone can really draw are shown (no empty boxes). */
+    fun visible(): List<KbFontStyle> {
+        val c = visibleCache
+        if (c != null) return c
+        val p = android.graphics.Paint()
+        val out = all.filter {
+            it.id == "normal" || p.hasGlyph(it.render("Aa")) && p.hasGlyph(it.render("Zz"))
+        }
+        visibleCache = out
+        return out
+    }
 
     fun byId(id: String): KbFontStyle = all.firstOrNull { it.id == id } ?: normal
 }
@@ -206,7 +247,7 @@ class KbFontAdapter(
     }
 
     override fun onBindViewHolder(holder: KbFontVH, position: Int) {
-        val st = KbFonts.all[position]
+        val st = KbFonts.visible()[position]
         val th = themeOf()
         val c = holder.tv.context
         val sel = st.id == selectedId()
@@ -216,7 +257,7 @@ class KbFontAdapter(
         sb.setSpan(ForegroundColorSpan(th.accent), 0, st.name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         sb.setSpan(StyleSpan(Typeface.BOLD), 0, st.name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         val start = sb.length
-        sb.append(st.render("Myra 786"))
+        sb.append(st.render("Myra Keyboard 786"))
         sb.setSpan(ForegroundColorSpan(th.text), start, sb.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         holder.tv.text = sb
         val g = GradientDrawable(
@@ -232,5 +273,5 @@ class KbFontAdapter(
         holder.tv.setOnClickListener { onPick(st) }
     }
 
-    override fun getItemCount(): Int = KbFonts.all.size
+    override fun getItemCount(): Int = KbFonts.visible().size
 }

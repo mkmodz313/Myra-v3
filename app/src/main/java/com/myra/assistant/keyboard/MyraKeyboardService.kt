@@ -51,6 +51,11 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
     private var fontBtn: TextView? = null
     private var curFont: KbFontStyle = KbFonts.normal
     private val composing = StringBuilder()
+    private lateinit var suggest: KbSuggest
+    private lateinit var strip: LinearLayout
+    private val stripViews = ArrayList<TextView>()
+    private var suggestOn = true
+    private val ui = android.os.Handler(android.os.Looper.getMainLooper())
     private lateinit var clipList: LinearLayout
     private lateinit var pagerAdapter: KbPagerAdapter
     private lateinit var emojiPager: RecyclerView
@@ -109,6 +114,9 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
 
         toolbar = buildToolbar()
         r.addView(toolbar, LinearLayout.LayoutParams(MATCH, dp(44)))
+        if (!::suggest.isInitialized) suggest = KbSuggest(this)
+        strip = buildStrip()
+        r.addView(strip, LinearLayout.LayoutParams(MATCH, dp(38)))
 
         content = FrameLayout(this)
         content.clipChildren = false
@@ -317,6 +325,98 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
         if (e.length <= 12) KbPrefs.addRecent(this, e)
     }
 
+    private fun buildStrip(): LinearLayout {
+        val bar = LinearLayout(this)
+        bar.orientation = LinearLayout.HORIZONTAL
+        bar.gravity = Gravity.CENTER_VERTICAL
+        stripViews.clear()
+        for (i in 0 until 3) {
+            val tv = TextView(this)
+            tv.textSize = 16f
+            tv.gravity = Gravity.CENTER
+            tv.maxLines = 1
+            tv.setPadding(dp(6), 0, dp(6), 0)
+            tv.setOnClickListener {
+                val w = tv.text?.toString() ?: ""
+                if (w.isNotEmpty()) pickSuggestion(w)
+            }
+            bar.addView(tv, LinearLayout.LayoutParams(0, MATCH, 1f))
+            stripViews.add(tv)
+        }
+        return bar
+    }
+
+    private fun suggestionsAllowed(): Boolean {
+        if (curFont.id != "normal") return false
+        val it = currentInputEditorInfo?.inputType ?: return false
+        if ((it and android.text.InputType.TYPE_MASK_CLASS) != android.text.InputType.TYPE_CLASS_TEXT) return false
+        val v = it and android.text.InputType.TYPE_MASK_VARIATION
+        return when (v) {
+            android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD,
+            android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
+            android.text.InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD,
+            android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
+            android.text.InputType.TYPE_TEXT_VARIATION_URI -> false
+            else -> true
+        }
+    }
+
+    private fun isWordChar(ch: Char): Boolean {
+        if (ch == '\'') return true
+        if (Character.isLetter(ch)) return true
+        val ty = Character.getType(ch)
+        return ty == Character.NON_SPACING_MARK.toInt() || ty == Character.COMBINING_SPACING_MARK.toInt()
+    }
+
+    private fun wordBeforeCursor(): String {
+        val b = currentInputConnection?.getTextBeforeCursor(40, 0)?.toString() ?: return ""
+        var i = b.length
+        while (i > 0 && isWordChar(b[i - 1])) i--
+        return b.substring(i)
+    }
+
+    /** Refresh the three suggestion slots (called after every key). */
+    private fun updateSuggestions() {
+        ui.removeCallbacks(suggestRunnable)
+        ui.postDelayed(suggestRunnable, 25)
+    }
+
+    private val suggestRunnable = Runnable {
+        if (!::strip.isInitialized || !::suggest.isInitialized) return@Runnable
+        val list: List<String> = if (suggestOn && suggestionsAllowed()) {
+            val pre = wordBeforeCursor()
+            val s = suggest.suggest(pre)
+            if (pre.length >= 2 && s.none { it.equals(pre, ignoreCase = true) }) {
+                (listOf(pre) + s).take(3)
+            } else s
+        } else emptyList()
+        // best match in the middle, like other keyboards
+        val order = when (list.size) {
+            0 -> listOf("", "", "")
+            1 -> listOf("", list[0], "")
+            2 -> listOf(list[1], list[0], "")
+            else -> listOf(list[1], list[0], list[2])
+        }
+        for (i in 0 until 3) stripViews[i].text = order[i]
+    }
+
+    private fun pickSuggestion(w: String) {
+        val ic = currentInputConnection ?: return
+        flushComposing()
+        val pre = wordBeforeCursor()
+        if (pre.isNotEmpty()) ic.deleteSurroundingText(pre.length, 0)
+        ic.commitText(w + " ", 1)
+        suggest.learn(w)
+        updateCaps()
+        updateSuggestions()
+    }
+
+    private fun learnLastWord() {
+        if (!::suggest.isInitialized || !suggestionsAllowed()) return
+        val w = wordBeforeCursor()
+        if (w.length >= 2) suggest.learn(w)
+    }
+
     private fun buildFontPanel(): LinearLayout {
         val p = LinearLayout(this)
         p.orientation = LinearLayout.VERTICAL
@@ -332,10 +432,18 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
         return p
     }
 
+    /** The letters printed on the keys follow the chosen font. */
+    private fun syncFontToKeys() {
+        val f = curFont
+        kb.labelMap = if (f.id == "normal") null else { s -> f.keycap(s) }
+        kb.invalidate()
+    }
+
     private fun selectFont(st: KbFontStyle) {
         flushComposing()
         curFont = st
         KbPrefs.setFontStyle(this, st.id)
+        syncFontToKeys()
         styleChrome()
         showPanel(null)
     }
@@ -403,6 +511,7 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
 
     override fun onFinishInputView(finishingInput: Boolean) {
         flushComposing()
+        if (::suggest.isInitialized) suggest.save()
         super.onFinishInputView(finishingInput)
     }
 
@@ -494,7 +603,7 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
 
     private fun refreshThemePanel() {
         styleRow.removeAllViews()
-        val styles = listOf("3d" to "3D", "glass" to "Glass", "flat" to "Flat", "bubble" to "Bubble", "png" to "My PNG")
+        val styles = listOf("jewel" to "Jewel", "neon" to "Neon", "rainbow" to "Rainbow ✨", "glossy" to "Glossy", "png" to "My PNG")
         val cur = currentStyle()
         for (st in styles) {
             val tv = TextView(this)
@@ -582,7 +691,7 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
         if (p === themePanel) refreshThemePanel()
         if (p === fontPanel) {
             fontAdapter.notifyDataSetChanged()
-            val idx = KbFonts.all.indexOfFirst { it.id == curFont.id }
+            val idx = KbFonts.visible().indexOfFirst { it.id == curFont.id }
             if (idx >= 0) fontList.scrollToPosition(idx)
         }
         if (p === clipPanel) refreshClips()
@@ -611,6 +720,7 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
         if (!curLangs.contains(cur)) cur = curLangs[0]
         kb.lang = KbLayouts.byId(cur)
         kb.reload()
+        syncFontToKeys()
         root?.setTheme(theme)
         styleChrome()
         appliedStamp = KbPrefs.stamp(this)
@@ -630,6 +740,7 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
             fontBtn?.setTextColor(Color.WHITE)
         }
         for (tv in tabViews) tv.setTextColor(theme.text)
+        for (tv in stripViews) tv.setTextColor(theme.text)
         fontAdapter.notifyDataSetChanged()
         selectTab(curPage)
         pagerAdapter.notifyDataSetChanged()
@@ -640,6 +751,8 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
         if (root == null) return
         if (KbPrefs.stamp(this) != appliedStamp) applyAll()
         composing.setLength(0)
+        suggestOn = true
+        updateSuggestions()
         showPanel(null)
         kb.cancelAll()
         val inType = info?.inputType ?: 0
@@ -681,11 +794,14 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
             composing.append(t)
             currentInputConnection?.setComposingText(f.render(composing.toString()), 1)
             updateCaps()
+        updateSuggestions()
             return
         }
+        if (!isWordText(t)) learnLastWord()
         flushComposing()
         currentInputConnection?.commitText(t, 1)
         updateCaps()
+        updateSuggestions()
     }
 
     override fun onDelete() {
@@ -699,13 +815,16 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
                 ic?.setComposingText(curFont.render(composing.toString()), 1)
             }
             updateCaps()
+        updateSuggestions()
             return
         }
         sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
         updateCaps()
+        updateSuggestions()
     }
 
     override fun onEnter() {
+        learnLastWord()
         flushComposing()
         val ic = currentInputConnection ?: return
         val ei: EditorInfo? = currentInputEditorInfo
@@ -718,6 +837,7 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
             sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
         }
         updateCaps()
+        updateSuggestions()
     }
 
     override fun onLangNext() {

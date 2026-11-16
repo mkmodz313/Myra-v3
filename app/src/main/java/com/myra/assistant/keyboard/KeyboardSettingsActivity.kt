@@ -305,7 +305,7 @@ class KeyboardSettingsActivity : AppCompatActivity() {
         styleRow.removeAllViews()
         val st = KbPrefs.style(this)
         val cur = if (st.isEmpty()) KbThemes.byId(KbPrefs.themeId(this)).defStyle else st
-        val list = listOf("3d" to "3D", "glass" to "Glass", "flat" to "Flat", "bubble" to "Bubble", "png" to "My PNG")
+        val list = listOf("jewel" to "Jewel", "neon" to "Neon", "rainbow" to "Rainbow ✨", "glossy" to "Glossy", "png" to "My PNG")
         for (s in list) {
             val tv = text(s.second, 13f, 0xFFFFFFFF, true)
             tv.gravity = Gravity.CENTER
