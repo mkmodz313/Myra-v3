@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Myra" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/myra_dark</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@color/myra_dark</item>
+        <item name="colorPrimary">@color/myra_red</item>
+        <item name="colorPrimaryDark">@color/myra_red_dark</item>
+        <item name="colorAccent">@color/myra_purple</item>
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:textColorPrimary">@color/myra_text</item>
+        <item name="android:textColorHint">@color/myra_hint</item>
+        <item name="editTextColor">@color/myra_text</item>
+        <item name="colorControlActivated">@color/myra_cyan</item>
+        <item name="colorControlHighlight">@color/myra_glow_cyan</item>
+    </style>
+
+    <style name="Theme.Myra.Transparent" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+
+    <!-- MYRA Custom Text Style -->
+    <style name="MyraTitle">
+        <item name="android:fontFamily">sans-serif-black</item>
+        <item name="android:letterSpacing">0.35</item>
+        <item name="android:textColor">@color/myra_red</item>
+        <item name="android:textSize">26sp</item>
+    </style>
+
+    <style name="MyraSubtitle">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:letterSpacing">0.4</item>
+        <item name="android:textColor">@color/myra_hint</item>
+        <item name="android:textSize">9sp</item>
+    </style>
+
+    <style name="MyraStatus">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:letterSpacing">0.15</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:alpha">0.85</item>
+    </style>
+
+    <style name="PinButton">
+        <item name="android:layout_width">80dp</item>
+        <item name="android:layout_height">80dp</item>
+        <item name="android:textSize">22sp</item>
+        <item name="android:textColor">@color/myra_text</item>
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+</resources>

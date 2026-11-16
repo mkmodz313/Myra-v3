@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/adminRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#12001A">
+
+    <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:importantForAccessibility="no" android:scaleType="centerCrop" android:src="@drawable/myra_bg_scene"/>
+    <View android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/bg_chat_scrim"/>
+
+    <ScrollView android:layout_width="match_parent" android:layout_height="match_parent" android:fillViewport="true">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal" android:paddingBottom="12dp">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:fontFamily="sans-serif-medium" android:shadowColor="#FFFF2BD6" android:shadowDx="0" android:shadowDy="0" android:shadowRadius="14" android:text="🔐 Admin Panel" android:textColor="#FFFFFFFF" android:textSize="24sp"/>
+                <Button android:id="@+id/adminLogout" android:layout_width="wrap_content" android:layout_height="42dp" android:background="@drawable/bg_btn_3d" android:minWidth="0dp" android:paddingStart="18dp" android:paddingEnd="18dp" android:stateListAnimator="@null" android:text="Logout" android:textAllCaps="false" android:textColor="#FFFFFFFF" android:textSize="14sp"/>
+            </LinearLayout>
+
+            <!-- statistics -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/bg_card_3d" android:orientation="horizontal" android:paddingStart="10dp" android:paddingTop="16dp" android:paddingEnd="10dp" android:paddingBottom="22dp">
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                <TextView android:id="@+id/stTotal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#FFFF8CEB" android:textSize="24sp" android:fontFamily="sans-serif-medium"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Wallpapers" android:textColor="#FFF3D9F5" android:textSize="12sp"/>
+            </LinearLayout>
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                <TextView android:id="@+id/stLive" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#FFFF8CEB" android:textSize="24sp" android:fontFamily="sans-serif-medium"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Published" android:textColor="#FFF3D9F5" android:textSize="12sp"/>
+            </LinearLayout>
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                <TextView android:id="@+id/stSets" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#FFFF8CEB" android:textSize="24sp" android:fontFamily="sans-serif-medium"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Total sets" android:textColor="#FFF3D9F5" android:textSize="12sp"/>
+            </LinearLayout>
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                <TextView android:id="@+id/stViews" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#FFFF8CEB" android:textSize="24sp" android:fontFamily="sans-serif-medium"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Total views" android:textColor="#FFF3D9F5" android:textSize="12sp"/>
+            </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- upload -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:background="@drawable/bg_card_3d" android:orientation="vertical" android:padding="18dp" android:paddingBottom="26dp">
+                <TextView android:id="@+id/formTitle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-medium" android:text="⬆️ Naya wallpaper upload karein" android:textColor="#FFFFA6EE" android:textSize="16sp"/>
+                <EditText android:id="@+id/fTitle" android:layout_width="match_parent" android:layout_height="52dp" android:background="@drawable/bg_input_field" android:paddingStart="14dp" android:paddingEnd="14dp" android:textColor="#FFFFFFFF" android:textColorHint="#FFB98CC4" android:textSize="15sp" android:layout_marginTop="14dp" android:hint="Title" android:inputType="textCapSentences" android:maxLength="80" android:maxLines="1"/>
+                <EditText android:id="@+id/fDesc" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:background="@drawable/bg_input_field" android:gravity="top" android:hint="Description" android:inputType="textMultiLine|textCapSentences" android:maxLength="400" android:minHeight="80dp" android:padding="14dp" android:textColor="#FFFFFFFF" android:textColorHint="#FFB98CC4" android:textSize="15sp"/>
+                <Spinner android:id="@+id/fCategory" android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="10dp" android:background="@drawable/bg_input_field" android:paddingStart="8dp"/>
+
+                <Button android:id="@+id/btnPickVideo" android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="14dp" android:background="@drawable/bg_neon_button_outline" android:stateListAnimator="@null" android:text="🎬 Video chunein (mp4)" android:textAllCaps="false" android:textColor="#FFFFFFFF" android:textSize="15sp"/>
+                <TextView android:id="@+id/videoInfo" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Koi video nahi chuni" android:textColor="#FFF3D9F5" android:textSize="12sp"/>
+
+                <Button android:id="@+id/btnPickThumb" android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="10dp" android:background="@drawable/bg_neon_button_outline" android:stateListAnimator="@null" android:text="🖼️ Thumbnail chunein (optional)" android:textAllCaps="false" android:textColor="#FFFFFFFF" android:textSize="15sp"/>
+                <TextView android:id="@+id/thumbInfo" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Na chunein to video se khud ban jayega" android:textColor="#FFF3D9F5" android:textSize="12sp"/>
+
+                <CheckBox android:id="@+id/fPublish" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:buttonTint="#FFFF4FD8" android:checked="true" android:text="Turant publish karein (sab users ko dikhe)" android:textColor="#FFFFFFFF" android:textSize="14sp"/>
+
+                <ProgressBar android:id="@+id/barVideo" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="6dp" android:layout_marginTop="8dp" android:max="100" android:progressTint="#FFFF4FD8" android:visibility="gone"/>
+                <ProgressBar android:id="@+id/barThumb" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="6dp" android:layout_marginTop="6dp" android:max="100" android:progressTint="#FFFFB8F2" android:visibility="gone"/>
+                <TextView android:id="@+id/upStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:textColor="#FFFFD6F8" android:textSize="13sp" android:visibility="gone"/>
+
+                <Button android:id="@+id/btnUpload" android:layout_width="match_parent" android:layout_height="58dp" android:layout_marginTop="16dp" android:background="@drawable/bg_save_button" android:fontFamily="sans-serif-medium" android:stateListAnimator="@null" android:text="UPLOAD &amp; SAVE" android:textColor="#FFFFFFFF" android:textSize="16sp"/>
+            </LinearLayout>
+
+            <!-- list -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:layout_marginBottom="24dp" android:background="@drawable/bg_card_3d" android:orientation="vertical" android:padding="18dp" android:paddingBottom="26dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:fontFamily="sans-serif-medium" android:text="🎞️ Wallpapers" android:textColor="#FFFFA6EE" android:textSize="16sp"/>
+                    <ImageButton android:id="@+id/btnReload" android:layout_width="40dp" android:layout_height="40dp" android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="Refresh" android:padding="8dp" android:scaleType="fitCenter" android:src="@drawable/ic_refresh"/>
+                </LinearLayout>
+                <TextView android:id="@+id/listStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Load ho raha hai..." android:textColor="#FFF3D9F5" android:textSize="13sp"/>
+                <LinearLayout android:id="@+id/wpList" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical"/>
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+</FrameLayout>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="10dp"
+    android:paddingTop="5dp"
+    android:paddingEnd="56dp"
+    android:paddingBottom="5dp">
+
+    <ImageView
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:background="@drawable/bg_avatar_ring"
+        android:clipToOutline="true"
+        android:importantForAccessibility="no"
+        android:padding="2dp"
+        android:scaleType="centerCrop"
+        android:src="@drawable/myra_avatar_thumb"/>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/bg_bubble_myra_neon"
+        android:orientation="horizontal"
+        android:paddingStart="18dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="18dp"
+        android:paddingBottom="12dp">
+
+        <TextView android:id="@+id/dot1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="●" android:textColor="#FFFFE0FA" android:textSize="12sp"/>
+        <TextView android:id="@+id/dot2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:text="●" android:textColor="#FFFFE0FA" android:textSize="12sp"/>
+        <TextView android:id="@+id/dot3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:text="●" android:textColor="#FFFFE0FA" android:textSize="12sp"/>
+    </LinearLayout>
+</LinearLayout>
