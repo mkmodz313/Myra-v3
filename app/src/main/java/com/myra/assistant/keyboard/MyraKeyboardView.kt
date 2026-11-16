@@ -94,6 +94,8 @@ class MyraKeyboardView(context: Context) : View(context) {
         var pressed = false
         var body: Shader? = null
         var gloss: Shader? = null
+        var edge: Shader? = null
+        var shade: Shader? = null
     }
 
     var listener: Listener? = null
@@ -265,6 +267,7 @@ class MyraKeyboardView(context: Context) : View(context) {
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val w = MeasureSpec.getSize(widthMeasureSpec)
+        // height is ALWAYS fixed: 4 rows + padding (never depends on the content or on voice typing)
         setMeasuredDimension(w, (rowH * 4f + dp(10f)).toInt())
     }
 
@@ -319,19 +322,37 @@ class MyraKeyboardView(context: Context) : View(context) {
     private fun buildShaders(k: Key) {
         k.body = null
         k.gloss = null
+        k.edge = null
+        k.shade = null
         val r = k.rect
         if (r.width() <= 0f) return
         val b = baseColor(k)
         when (style) {
             "3d" -> {
+                val acc = kbTheme.accent
                 k.body = LinearGradient(
                     r.left, r.top, r.left, r.bottom,
-                    intArrayOf(withOp(lighten(b, 1.18f)), withOp(b), withOp(lighten(b, 0.84f))),
-                    floatArrayOf(0f, 0.55f, 1f), Shader.TileMode.CLAMP
+                    intArrayOf(
+                        withOp(blend(b, Color.WHITE, 0.30f)),
+                        withOp(b),
+                        withOp(blend(b, Color.BLACK, 0.24f))
+                    ),
+                    floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP
                 )
                 k.gloss = LinearGradient(
                     r.left, r.top, r.left, r.top + r.height() * 0.5f,
-                    0x66FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP
+                    0x80FFFFFF.toInt(), 0x00FFFFFF, Shader.TileMode.CLAMP
+                )
+                k.shade = LinearGradient(
+                    r.left, r.top + r.height() * 0.55f, r.left, r.bottom,
+                    0x00000000, 0x44000000, Shader.TileMode.CLAMP
+                )
+                // outer border follows the theme colour: bright rim on top, deep rim at the bottom
+                k.edge = LinearGradient(
+                    r.left, r.top, r.left, r.bottom,
+                    blend(acc or (0xFF shl 24), Color.WHITE, 0.60f),
+                    blend(acc or (0xFF shl 24), Color.BLACK, 0.45f),
+                    Shader.TileMode.CLAMP
                 )
             }
             "glass" -> {
@@ -423,32 +444,68 @@ class MyraKeyboardView(context: Context) : View(context) {
                     strokePaint.color = Color.argb((110 * opacity / 100).coerceIn(0, 255), 255, 255, 255)
                     c.drawRoundRect(r, rad, rad, strokePaint)
                 }
-                else -> { // 3d
+                else -> { // 3d (ultra): soft shadow + thick side wall + coloured rim + glossy face
+                    val acc = kbTheme.accent or (0xFF shl 24)
                     if (!k.pressed) {
                         paint.shader = null
-                        paint.color = Color.argb((95 * opacity / 100).coerceIn(0, 255), 0, 0, 0)
+                        paint.color = Color.argb((46 * opacity / 100).coerceIn(0, 255), 0, 0, 0)
                         tmp2.set(r)
-                        tmp2.offset(0f, dp(2.4f))
+                        tmp2.inset(-dp(1.2f), -dp(0.4f))
+                        tmp2.offset(0f, dp(5f))
+                        c.drawRoundRect(tmp2, rad + dp(1.2f), rad + dp(1.2f), paint)
+                        paint.color = Color.argb((70 * opacity / 100).coerceIn(0, 255), 0, 0, 0)
+                        tmp2.set(r)
+                        tmp2.offset(0f, dp(3.4f))
+                        c.drawRoundRect(tmp2, rad, rad, paint)
+                        // side wall (the 3D thickness of the key)
+                        paint.color = withOp(blend(blend(base, Color.BLACK, 0.55f), acc, 0.22f))
+                        tmp2.set(r)
+                        tmp2.offset(0f, dp(3f))
                         c.drawRoundRect(tmp2, rad, rad, paint)
                     }
                     val bd = k.body
                     if (k.pressed || bd == null) {
                         paint.shader = null
-                        paint.color = withOp(lighten(base, 0.78f))
+                        paint.color = withOp(blend(base, acc, 0.35f))
                     } else {
                         paint.shader = bd
                         paint.color = Color.WHITE
                     }
                     c.drawRoundRect(r, rad, rad, paint)
+                    val sh = k.shade
+                    if (sh != null && !k.pressed) {
+                        paint.shader = sh
+                        paint.color = Color.WHITE
+                        c.drawRoundRect(r, rad, rad, paint)
+                    }
                     paint.shader = null
-                    strokePaint.color = Color.argb((120 * opacity / 100).coerceIn(0, 255), 255, 255, 255)
-                    c.drawRoundRect(r, rad, rad, strokePaint)
+                    // coloured outer rim
+                    val ed = k.edge
+                    val oldW = strokePaint.strokeWidth
+                    strokePaint.strokeWidth = dp(1.7f)
+                    if (ed != null) {
+                        strokePaint.shader = ed
+                        strokePaint.color = Color.WHITE
+                    } else {
+                        strokePaint.color = acc
+                    }
+                    tmp2.set(r)
+                    tmp2.inset(dp(0.85f), dp(0.85f))
+                    c.drawRoundRect(tmp2, rad - dp(0.8f), rad - dp(0.8f), strokePaint)
+                    strokePaint.shader = null
+                    // inner light line + top gloss
+                    strokePaint.strokeWidth = dp(0.9f)
+                    strokePaint.color = Color.argb((95 * opacity / 100).coerceIn(0, 255), 255, 255, 255)
+                    tmp2.set(r)
+                    tmp2.inset(dp(2.3f), dp(2.3f))
+                    c.drawRoundRect(tmp2, maxOf(1f, rad - dp(2.2f)), maxOf(1f, rad - dp(2.2f)), strokePaint)
+                    strokePaint.strokeWidth = oldW
                     val g = k.gloss
                     if (g != null && !k.pressed) {
                         paint.shader = g
                         paint.color = Color.WHITE
-                        tmp2.set(r.left + 1f, r.top + 1f, r.right - 1f, r.top + r.height() * 0.5f)
-                        c.drawRoundRect(tmp2, rad, rad, paint)
+                        tmp2.set(r.left + dp(2.6f), r.top + dp(2.6f), r.right - dp(2.6f), r.top + r.height() * 0.5f)
+                        c.drawRoundRect(tmp2, rad - dp(2f), rad - dp(2f), paint)
                         paint.shader = null
                     }
                 }
@@ -466,7 +523,16 @@ class MyraKeyboardView(context: Context) : View(context) {
         val w = textPaint.measureText(s)
         if (w > maxW && w > 0f) textPaint.textSize = size * maxW / w
         val fm = textPaint.fontMetrics
+        if (style == "3d") {
+            textPaint.setShadowLayer(
+                dp(1.3f), 0f, dp(1.2f),
+                if (kbTheme.dark) 0xCC000000.toInt() else 0xB8FFFFFF.toInt()
+            )
+        } else {
+            textPaint.clearShadowLayer()
+        }
         c.drawText(s, cx, cy - (fm.ascent + fm.descent) / 2f, textPaint)
+        textPaint.clearShadowLayer()
         textPaint.isFakeBoldText = false
     }
 

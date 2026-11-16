@@ -61,10 +61,6 @@ class KbRootLayout(ctx: Context) : LinearLayout(ctx) {
                 paint.shader = null
             }
         }
-        if (t != null && t.dark && b != null) {
-            paint.color = 0x30000000
-            canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
-        }
         super.onDraw(canvas)
     }
 }

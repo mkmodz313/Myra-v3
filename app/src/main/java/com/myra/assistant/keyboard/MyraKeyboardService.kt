@@ -25,33 +25,9 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
-
-class EmojiVH(val tv: TextView) : RecyclerView.ViewHolder(tv)
-
-class EmojiAdapter(
-    private val cellH: Int,
-    private val onPick: (String) -> Unit
-) : RecyclerView.Adapter<EmojiVH>() {
-    var items: List<String> = emptyList()
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): EmojiVH {
-        val tv = TextView(parent.context)
-        tv.textSize = 24f
-        tv.gravity = Gravity.CENTER
-        tv.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, cellH)
-        return EmojiVH(tv)
-    }
-
-    override fun onBindViewHolder(holder: EmojiVH, position: Int) {
-        val e = items[position]
-        holder.tv.text = e
-        holder.tv.setOnClickListener { onPick(e) }
-    }
-
-    override fun getItemCount(): Int = items.size
-}
 
 /**
  * MYRA Keyboard - a real system keyboard (IME). Works in WhatsApp, YouTube, Chrome, every app,
@@ -69,8 +45,18 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
     private lateinit var emojiPanel: LinearLayout
     private lateinit var clipPanel: LinearLayout
     private lateinit var themePanel: LinearLayout
+    private lateinit var fontPanel: LinearLayout
+    private lateinit var fontList: RecyclerView
+    private lateinit var fontAdapter: KbFontAdapter
+    private var fontBtn: TextView? = null
+    private var curFont: KbFontStyle = KbFonts.normal
+    private val composing = StringBuilder()
     private lateinit var clipList: LinearLayout
-    private lateinit var emojiAdapter: EmojiAdapter
+    private lateinit var pagerAdapter: KbPagerAdapter
+    private lateinit var emojiPager: RecyclerView
+    private var pages: List<KbPage> = emptyList()
+    private var curPage = 1
+    private val tabViews = ArrayList<TextView>()
     private lateinit var emojiTabs: LinearLayout
     private lateinit var styleRow: LinearLayout
     private lateinit var themeRow: LinearLayout
@@ -129,19 +115,34 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
         content.clipToPadding = false
         kb = MyraKeyboardView(this)
         kb.listener = this
-        content.addView(kb, FrameLayout.LayoutParams(MATCH, WRAP))
+        content.addView(kb, FrameLayout.LayoutParams(MATCH, MATCH))
 
         emojiPanel = buildEmojiPanel()
         clipPanel = buildClipPanel()
         themePanel = buildThemePanel()
-        for (p in listOf(emojiPanel, clipPanel, themePanel)) {
+        fontPanel = buildFontPanel()
+        for (p in listOf(emojiPanel, clipPanel, themePanel, fontPanel)) {
             p.visibility = View.GONE
             content.addView(p, FrameLayout.LayoutParams(MATCH, MATCH))
         }
-        r.addView(content, LinearLayout.LayoutParams(MATCH, WRAP))
+        r.addView(content, LinearLayout.LayoutParams(MATCH, fixedContentH()))
         root = r
         applyAll()
         return r
+    }
+
+    /** The keyboard (and every panel on top of it) always has exactly this height. */
+    private fun fixedContentH(): Int =
+        (dp(50) * KbPrefs.heightPct(this) / 100f * 4f + dp(10)).toInt()
+
+    private fun applyFixedHeight() {
+        val lp = content.layoutParams
+        val h = fixedContentH()
+        if (lp != null && lp.height != h) {
+            lp.height = h
+            content.layoutParams = lp
+        }
+        root?.requestLayout()
     }
 
     private fun pill(color: Int, radiusDp: Int): GradientDrawable {
@@ -173,6 +174,8 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
         add("😀", 18f) { showPanel(emojiPanel) }
         add("📋", 16f) { showPanel(clipPanel) }
         add("🎨", 16f) { showPanel(themePanel) }
+        add("Aa", 13f) { showPanel(fontPanel) }
+        fontBtn = toolButtons[toolButtons.size - 1]
         add("ALL", 11f) { editAction(android.R.id.selectAll) }
         add("COPY", 11f) { editAction(android.R.id.copy) }
         add("CUT", 11f) { editAction(android.R.id.cut) }
@@ -230,49 +233,177 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
     private fun buildEmojiPanel(): LinearLayout {
         val p = LinearLayout(this)
         p.orientation = LinearLayout.VERTICAL
-        p.addView(panelHeader("Emoji", null, null, true))
+
+        // one fixed row: category tabs (scroll) + delete + ABC
+        val bar = LinearLayout(this)
+        bar.orientation = LinearLayout.HORIZONTAL
+        bar.gravity = Gravity.CENTER_VERTICAL
+        bar.setPadding(dp(4), dp(3), dp(4), dp(3))
         val sv = HorizontalScrollView(this)
         sv.isHorizontalScrollBarEnabled = false
+        sv.overScrollMode = View.OVER_SCROLL_NEVER
         emojiTabs = LinearLayout(this)
         emojiTabs.orientation = LinearLayout.HORIZONTAL
-        sv.addView(emojiTabs, FrameLayout.LayoutParams(WRAP, WRAP))
-        p.addView(sv, LinearLayout.LayoutParams(MATCH, dp(38)))
-
-        emojiAdapter = EmojiAdapter(dp(42)) { e -> commitEmoji(e) }
-        val rv = RecyclerView(this)
-        rv.layoutManager = GridLayoutManager(this, 8)
-        rv.adapter = emojiAdapter
-        rv.clipToPadding = false
-        p.addView(rv, LinearLayout.LayoutParams(MATCH, 0, 1f))
-
-        val tabs = ArrayList<Pair<String, () -> List<String>>>()
-        tabs.add("🕒" to { KbPrefs.recents(this) })
-        for (c in KbEmoji.cats) {
-            val list = c.second
-            tabs.add(c.first to { list })
+        sv.addView(emojiTabs, FrameLayout.LayoutParams(WRAP, MATCH))
+        bar.addView(sv, LinearLayout.LayoutParams(0, MATCH, 1f))
+        fun btn(label: String, onClick: () -> Unit) {
+            val b = TextView(this)
+            b.text = label
+            b.textSize = 12f
+            b.typeface = Typeface.DEFAULT_BOLD
+            b.gravity = Gravity.CENTER
+            b.setPadding(dp(12), 0, dp(12), 0)
+            b.setOnClickListener { onClick() }
+            val lp = LinearLayout.LayoutParams(WRAP, MATCH)
+            lp.leftMargin = dp(5)
+            bar.addView(b, lp)
+            panelButtons.add(b)
         }
-        for ((i, tab) in tabs.withIndex()) {
+        btn("⌫") { onDelete() }
+        btn("ABC") { showPanel(null) }
+        p.addView(bar, LinearLayout.LayoutParams(MATCH, dp(40)))
+
+        pages = KbPages.build(this)
+        pagerAdapter = KbPagerAdapter(pages, { theme }) { e -> commitEmoji(e) }
+        emojiPager = RecyclerView(this)
+        emojiPager.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        emojiPager.overScrollMode = View.OVER_SCROLL_NEVER
+        emojiPager.setHasFixedSize(true)
+        emojiPager.setItemViewCacheSize(2)
+        emojiPager.adapter = pagerAdapter
+        PagerSnapHelper().attachToRecyclerView(emojiPager)
+        emojiPager.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(rv: RecyclerView, newState: Int) {
+                if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                    val lm = rv.layoutManager as LinearLayoutManager
+                    val pos = lm.findFirstCompletelyVisibleItemPosition()
+                    if (pos >= 0 && pos != curPage) selectTab(pos)
+                }
+            }
+        })
+        p.addView(emojiPager, LinearLayout.LayoutParams(MATCH, 0, 1f))
+
+        for ((i, pg) in pages.withIndex()) {
             val tv = TextView(this)
-            tv.text = tab.first
-            tv.textSize = 20f
+            tv.text = pg.tab
+            tv.textSize = 19f
             tv.gravity = Gravity.CENTER
-            tv.setPadding(dp(12), 0, dp(12), 0)
-            val getter = tab.second
+            tv.setPadding(dp(11), 0, dp(11), 0)
             tv.setOnClickListener {
-                emojiAdapter.items = getter()
-                emojiAdapter.notifyDataSetChanged()
+                emojiPager.scrollToPosition(i)
+                selectTab(i)
             }
             emojiTabs.addView(tv, LinearLayout.LayoutParams(WRAP, MATCH))
-            if (i == 1) {
-                emojiAdapter.items = getter()
-            }
+            tabViews.add(tv)
         }
+        emojiPager.scrollToPosition(curPage)
         return p
     }
 
+    private fun selectTab(i: Int) {
+        curPage = i
+        for ((idx, tv) in tabViews.withIndex()) {
+            tv.background = if (idx == i) pill(withAlpha(theme.accent, 110), 12) else null
+        }
+        val tv = tabViews.getOrNull(i) ?: return
+        (emojiTabs.parent as? HorizontalScrollView)?.post {
+            (emojiTabs.parent as? HorizontalScrollView)?.smoothScrollTo(maxOf(0, tv.left - dp(60)), 0)
+        }
+    }
+
     private fun commitEmoji(e: String) {
+        flushComposing()
         currentInputConnection?.commitText(e, 1)
-        KbPrefs.addRecent(this, e)
+        if (e.length <= 12) KbPrefs.addRecent(this, e)
+    }
+
+    private fun buildFontPanel(): LinearLayout {
+        val p = LinearLayout(this)
+        p.orientation = LinearLayout.VERTICAL
+        p.addView(panelHeader("Font Style", "Convert", { convertAll() }, false))
+        fontList = RecyclerView(this)
+        fontList.layoutManager = LinearLayoutManager(this)
+        fontList.overScrollMode = View.OVER_SCROLL_NEVER
+        fontList.clipToPadding = false
+        fontList.setPadding(dp(4), 0, dp(4), dp(6))
+        fontAdapter = KbFontAdapter({ theme }, { curFont.id }) { st -> selectFont(st) }
+        fontList.adapter = fontAdapter
+        p.addView(fontList, LinearLayout.LayoutParams(MATCH, 0, 1f))
+        return p
+    }
+
+    private fun selectFont(st: KbFontStyle) {
+        flushComposing()
+        curFont = st
+        KbPrefs.setFontStyle(this, st.id)
+        styleChrome()
+        showPanel(null)
+    }
+
+    /** Finish the word that is being typed in a stylish font (so it stays as normal text). */
+    private fun flushComposing() {
+        if (composing.isNotEmpty()) {
+            try {
+                currentInputConnection?.finishComposingText()
+            } catch (e: Throwable) {
+            }
+            composing.setLength(0)
+        }
+    }
+
+    /** Convert the selected text (or the whole text of the box) into the chosen font once. */
+    private fun convertAll() {
+        val f = curFont
+        if (f.id == "normal") {
+            Toast.makeText(this, "Pehle koi font chunein", Toast.LENGTH_SHORT).show()
+            return
+        }
+        flushComposing()
+        val ic = currentInputConnection ?: return
+        try {
+            val sel = ic.getSelectedText(0)
+            if (!sel.isNullOrEmpty()) {
+                ic.commitText(f.render(sel.toString()), 1)
+            } else {
+                val b = ic.getTextBeforeCursor(5000, 0)?.toString() ?: ""
+                val a = ic.getTextAfterCursor(5000, 0)?.toString() ?: ""
+                if (b.isEmpty() && a.isEmpty()) {
+                    Toast.makeText(this, "Pehle kuch likhein ya select karein", Toast.LENGTH_SHORT).show()
+                    return
+                }
+                ic.deleteSurroundingText(b.length, a.length)
+                ic.commitText(f.render(b + a), 1)
+            }
+        } catch (e: Throwable) {
+        }
+        showPanel(null)
+    }
+
+    private fun isWordText(t: String): Boolean {
+        if (t.isEmpty()) return false
+        for (ch in t) {
+            val ty = Character.getType(ch)
+            val ok = Character.isLetterOrDigit(ch) ||
+                ty == Character.NON_SPACING_MARK.toInt() ||
+                ty == Character.COMBINING_SPACING_MARK.toInt()
+            if (!ok) return false
+        }
+        return true
+    }
+
+    override fun onUpdateSelection(
+        oldSelStart: Int, oldSelEnd: Int, newSelStart: Int, newSelEnd: Int,
+        candidatesStart: Int, candidatesEnd: Int
+    ) {
+        super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
+        if (composing.isNotEmpty() && (candidatesStart < 0 || newSelStart != candidatesEnd)) {
+            flushComposing()
+        }
+    }
+
+    override fun onFinishInputView(finishingInput: Boolean) {
+        flushComposing()
+        super.onFinishInputView(finishingInput)
     }
 
     private fun buildClipPanel(): LinearLayout {
@@ -442,21 +573,30 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
     private fun showPanel(p: View?) {
         if (root == null) return
         kb.cancelAll()
-        for (v in listOf(emojiPanel, clipPanel, themePanel)) {
+        flushComposing()
+        for (v in listOf(emojiPanel, clipPanel, themePanel, fontPanel)) {
             v.visibility = if (v === p) View.VISIBLE else View.GONE
         }
         kb.visibility = if (p == null) View.VISIBLE else View.INVISIBLE
+        if (p === emojiPanel) pagerAdapter.notifyItemChanged(0)
         if (p === themePanel) refreshThemePanel()
+        if (p === fontPanel) {
+            fontAdapter.notifyDataSetChanged()
+            val idx = KbFonts.all.indexOfFirst { it.id == curFont.id }
+            if (idx >= 0) fontList.scrollToPosition(idx)
+        }
         if (p === clipPanel) refreshClips()
     }
 
     // ------------------------------------------------------------------ applying settings
     private fun applyAll() {
+        curFont = KbFonts.byId(KbPrefs.fontStyle(this))
         theme = KbThemes.byId(KbPrefs.themeId(this))
         kb.kbTheme = theme
         kb.style = currentStyle()
         kb.opacity = KbPrefs.opacity(this)
         kb.rowH = dp(50) * KbPrefs.heightPct(this) / 100f
+        applyFixedHeight()
         kb.showHints = KbPrefs.hints(this)
         kb.showPreview = KbPrefs.preview(this)
         kb.customKey = if (kb.style == "png") KbThemes.loadCustomKey(this) else null
@@ -485,15 +625,21 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
             tv.setTextColor(theme.text)
             if (tv.paddingLeft > 0) tv.background = pill(withAlpha(theme.keyFill, 200), 12)
         }
-        for (i in 0 until emojiTabs.childCount) {
-            (emojiTabs.getChildAt(i) as? TextView)?.setTextColor(theme.text)
+        if (curFont.id != "normal") {
+            fontBtn?.background = pill(theme.accent, 10)
+            fontBtn?.setTextColor(Color.WHITE)
         }
+        for (tv in tabViews) tv.setTextColor(theme.text)
+        fontAdapter.notifyDataSetChanged()
+        selectTab(curPage)
+        pagerAdapter.notifyDataSetChanged()
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         if (root == null) return
         if (KbPrefs.stamp(this) != appliedStamp) applyAll()
+        composing.setLength(0)
         showPanel(null)
         kb.cancelAll()
         val inType = info?.inputType ?: 0
@@ -529,16 +675,38 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
 
     // ------------------------------------------------------------------ MyraKeyboardView.Listener
     override fun onText(t: String) {
+        val f = curFont
+        if (f.id != "normal" && isWordText(t)) {
+            // typing in a stylish font: the word is built live, e.g. ꧁Ali꧂ ; it ends on space / enter / symbol
+            composing.append(t)
+            currentInputConnection?.setComposingText(f.render(composing.toString()), 1)
+            updateCaps()
+            return
+        }
+        flushComposing()
         currentInputConnection?.commitText(t, 1)
         updateCaps()
     }
 
     override fun onDelete() {
+        if (composing.isNotEmpty()) {
+            composing.setLength(composing.length - 1)
+            val ic = currentInputConnection
+            if (composing.isEmpty()) {
+                ic?.setComposingText("", 1)
+                ic?.finishComposingText()
+            } else {
+                ic?.setComposingText(curFont.render(composing.toString()), 1)
+            }
+            updateCaps()
+            return
+        }
         sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
         updateCaps()
     }
 
     override fun onEnter() {
+        flushComposing()
         val ic = currentInputConnection ?: return
         val ei: EditorInfo? = currentInputEditorInfo
         val opts = ei?.imeOptions ?: 0
@@ -553,6 +721,7 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
     }
 
     override fun onLangNext() {
+        flushComposing()
         if (curLangs.size < 2) {
             onLangPicker()
             return

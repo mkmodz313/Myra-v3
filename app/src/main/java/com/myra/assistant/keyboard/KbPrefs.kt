@@ -64,6 +64,12 @@ object KbPrefs {
     fun preview(c: Context): Boolean = sp(c).getBoolean("preview", true)
     fun setPreview(c: Context, v: Boolean) = putB(c, "preview", v)
 
+    // ---- font style (typing in stylish fonts) ----
+    fun fontStyle(c: Context): String = sp(c).getString("font_style", "normal") ?: "normal"
+    fun setFontStyle(c: Context, v: String) {
+        sp(c).edit().putString("font_style", v).apply()
+    }
+
     // ---- languages ----
     fun langs(c: Context): List<String> =
         (sp(c).getString("langs", "en,hi") ?: "en,hi").split(",").map { it.trim() }.filter { it.isNotEmpty() }

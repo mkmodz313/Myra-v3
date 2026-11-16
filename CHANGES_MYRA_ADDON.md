@@ -100,3 +100,14 @@
 - keyboard/KbThemes.kt + assets/keyboard/* (12 image themes from the provided designs + 5 generated 3D themes + My Photo/PNG)
 - keyboard/KeyboardSettingsActivity.kt (enable/select keyboard, theme grid, background + key PNG picker, opacity/height, options, languages)
 - res/xml/method.xml, AndroidManifest.xml (service + activity), activity_settings.xml (new "MYRA Keyboard" card), SettingsActivity.kt (click listener)
+
+## MYRA Keyboard update (fixed height, swipe pages, 3D keys, Islamic, symbols)
+- keyboard/MyraKeyboardService.kt – keyboard + emoji/clipboard/theme panels now have ONE fixed pixel height (4 rows + padding); emoji panel is a left/right swipe pager (each category = one page, scroll up/down inside a page); tab bar and delete/ABC in one row
+- keyboard/MyraKeyboardView.kt – ultra 3D keys: soft shadow, side wall, rim colour follows theme accent, glossy face, text shadow
+- keyboard/KbPages.kt (new) – page data: emoji, Kalimat, Durood Sharif, Zikr/Dua, Islamic symbols, 500+ unique symbols (arrows, math, shapes, stars, currency, boxes, decor brackets, kaomoji)
+- keyboard/KbEmojiUi.kt (new) – adapters for the pages
+- keyboard/KbThemes.kt – every theme defaults to 3D keys
+- keyboard/KbRootLayout.kt – removed the extra dark overlay on the background image
+- assets/keyboard/bg_*.jpg + pv_*.jpg – 14 new 2160x1400 designs (galaxy, aurora, sunset, ocean, gold, emerald, rosebokeh, synthwave, marble, carbon, ice, lavender, islamic, crimson); KbThemes.kt registers each with its own matching key / box / text / border colours
+- keyboard/KbFonts.kt (new) – 30 decoration font styles (꧁ABC꧂ etc.) + 17 more letter fonts (bold, script, gothic, circle, small caps...); KbPrefs.fontStyle remembers the choice
+- keyboard/MyraKeyboardService.kt – new "Aa" toolbar button + Font Style panel; live typing in the chosen style (per word), Convert button for selected/whole text
