@@ -36,7 +36,7 @@ class KbItemAdapter(
         tv.gravity = Gravity.CENTER
         if (page.kind == KbPage.LIST) {
             tv.textSize = page.textSize
-            tv.setPadding(dp(c, 12), dp(c, 8), dp(c, 12), dp(c, 8))
+            tv.setPadding(dp(c, 14), dp(c, 8), dp(c, 14), dp(c, 14))
             val lp = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             lp.setMargins(dp(c, 4), dp(c, 3), dp(c, 4), dp(c, 3))
             tv.layoutParams = lp
@@ -67,7 +67,7 @@ class KbItemAdapter(
             }
             val start = sb.length
             sb.append(item.text)
-            sb.setSpan(ForegroundColorSpan(th.text), start, sb.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            sb.setSpan(ForegroundColorSpan(KbShiny.make(c, th, th.keyFill, 14f).textColor()), start, sb.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             holder.tv.text = sb
             holder.tv.maxLines = 4
             holder.tv.setLineSpacing(0f, 1.15f)
@@ -76,18 +76,9 @@ class KbItemAdapter(
             holder.tv.setTextColor(th.text)
         }
         if (page.boxed) {
-            val g = GradientDrawable(
-                GradientDrawable.Orientation.TOP_BOTTOM,
-                intArrayOf(
-                    blend(th.keyFill, Color.WHITE, 0.25f) and 0x00FFFFFF or (0xD8 shl 24),
-                    th.keyFill and 0x00FFFFFF or (0xC8 shl 24),
-                    blend(th.keyFill, Color.BLACK, 0.2f) and 0x00FFFFFF or (0xD0 shl 24)
-                )
-            )
-            g.cornerRadius = dp(c, if (page.kind == KbPage.LIST) 14 else 10).toFloat()
-            g.setStroke(dp(c, 1), th.accent)
-            val inset = if (page.kind == KbPage.LIST) 0 else dp(c, 2)
-            holder.tv.background = InsetDrawable(g, inset)
+            val dr = KbShiny.make(c, th, th.keyFill, if (page.kind == KbPage.LIST) 14f else 10f)
+            holder.tv.background = dr
+            if (page.kind == KbPage.GRID) holder.tv.setTextColor(dr.textColor())
         } else {
             holder.tv.background = null
         }

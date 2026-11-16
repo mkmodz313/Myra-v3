@@ -212,12 +212,8 @@ object KbFonts {
     fun visible(): List<KbFontStyle> {
         val c = visibleCache
         if (c != null) return c
-        val p = android.graphics.Paint()
-        val out = all.filter {
-            it.id == "normal" || p.hasGlyph(it.render("Aa")) && p.hasGlyph(it.render("Zz"))
-        }
-        visibleCache = out
-        return out
+        visibleCache = all
+        return all
     }
 
     fun byId(id: String): KbFontStyle = all.firstOrNull { it.id == id } ?: normal
@@ -239,7 +235,7 @@ class KbFontAdapter(
         val tv = TextView(c)
         tv.gravity = Gravity.CENTER
         tv.textSize = 19f
-        tv.setPadding(dp(c, 12), dp(c, 6), dp(c, 12), dp(c, 6))
+        tv.setPadding(dp(c, 14), dp(c, 8), dp(c, 14), dp(c, 14))
         val lp = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         lp.setMargins(dp(c, 4), dp(c, 3), dp(c, 4), dp(c, 3))
         tv.layoutParams = lp
@@ -260,16 +256,10 @@ class KbFontAdapter(
         sb.append(st.render("Myra Keyboard 786"))
         sb.setSpan(ForegroundColorSpan(th.text), start, sb.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         holder.tv.text = sb
-        val g = GradientDrawable(
-            GradientDrawable.Orientation.TOP_BOTTOM,
-            intArrayOf(
-                (th.keyFill and 0x00FFFFFF) or (0xE0 shl 24),
-                (th.specialFill and 0x00FFFFFF) or (0xD0 shl 24)
-            )
-        )
-        g.cornerRadius = dp(c, 12).toFloat()
-        g.setStroke(if (sel) dp(c, 3) else dp(c, 1), if (sel) Color.WHITE else th.accent)
-        holder.tv.background = g
+        val dr = KbShiny.make(c, th, th.keyFill, 14f, sel)
+        holder.tv.background = dr
+        sb.setSpan(ForegroundColorSpan(dr.textColor()), start, sb.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        holder.tv.text = sb
         holder.tv.setOnClickListener { onPick(st) }
     }
 

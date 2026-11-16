@@ -333,14 +333,17 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
         for (i in 0 until 3) {
             val tv = TextView(this)
             tv.textSize = 16f
+            tv.typeface = Typeface.DEFAULT_BOLD
             tv.gravity = Gravity.CENTER
             tv.maxLines = 1
-            tv.setPadding(dp(6), 0, dp(6), 0)
+            tv.setPadding(dp(8), 0, dp(8), dp(3))
             tv.setOnClickListener {
                 val w = tv.text?.toString() ?: ""
                 if (w.isNotEmpty()) pickSuggestion(w)
             }
-            bar.addView(tv, LinearLayout.LayoutParams(0, MATCH, 1f))
+            val slp = LinearLayout.LayoutParams(0, MATCH, 1f)
+            slp.setMargins(dp(3), dp(1), dp(3), 0)
+            bar.addView(tv, slp)
             stripViews.add(tv)
         }
         return bar
@@ -397,7 +400,10 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
             2 -> listOf(list[1], list[0], "")
             else -> listOf(list[1], list[0], list[2])
         }
-        for (i in 0 until 3) stripViews[i].text = order[i]
+        for (i in 0 until 3) {
+            stripViews[i].text = order[i]
+            stripViews[i].visibility = if (order[i].isEmpty()) View.INVISIBLE else View.VISIBLE
+        }
     }
 
     private fun pickSuggestion(w: String) {
@@ -727,20 +733,30 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
     }
 
     private fun styleChrome() {
+        KbShiny.style = currentStyle()
         for (tv in toolButtons) {
-            tv.setTextColor(theme.text)
-            tv.background = pill(withAlpha(theme.keyFill, 175), 10)
+            val dr = KbShiny.make(this, theme, theme.keyFill, 11f)
+            tv.background = dr
+            tv.setTextColor(dr.textColor())
         }
         for (tv in panelButtons) {
-            tv.setTextColor(theme.text)
-            if (tv.paddingLeft > 0) tv.background = pill(withAlpha(theme.keyFill, 200), 12)
+            if (tv.paddingLeft > 0) {
+                val dr = KbShiny.make(this, theme, theme.keyFill, 12f)
+                tv.background = dr
+                tv.setTextColor(dr.textColor())
+            } else tv.setTextColor(theme.text)
         }
         if (curFont.id != "normal") {
-            fontBtn?.background = pill(theme.accent, 10)
-            fontBtn?.setTextColor(Color.WHITE)
+            val dr = KbShiny.make(this, theme, theme.accent, 11f, true)
+            fontBtn?.background = dr
+            fontBtn?.setTextColor(dr.textColor())
         }
         for (tv in tabViews) tv.setTextColor(theme.text)
-        for (tv in stripViews) tv.setTextColor(theme.text)
+        for (tv in stripViews) {
+            val dr = KbShiny.make(this, theme, theme.keyFill, 12f)
+            tv.background = dr
+            tv.setTextColor(dr.textColor())
+        }
         fontAdapter.notifyDataSetChanged()
         selectTab(curPage)
         pagerAdapter.notifyDataSetChanged()

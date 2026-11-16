@@ -116,3 +116,5 @@
 - keyboard/KbSuggest.kt (new) + service – suggestion strip above the keys (3 words; learns the words you type)
 - assets/keyboard – 3 new designs: neonlights, pinkgalaxy, diamondheart
 - Old plain key styles (3D / glass / flat / bubble) retired: every theme now uses the shiny Jewel / Neon / Rainbow / Glossy key designs (+ corner star glints)
+- keyboard/KbShiny.kt (new) – shiny 3D button look (shadow, thick wall, coloured rim, gloss, pearls, glints) used by toolbar buttons, suggestion words, panel buttons, font rows and symbol boxes
+- KbFonts: all 30 fonts are always listed (the old glyph filter wrongly hid them)
