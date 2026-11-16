@@ -72,6 +72,8 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
     private var appliedStamp = -1L
     private var curLangs: List<String> = listOf("en")
     private var sound = false
+    private var soundIdx = 0
+    private var soundVol = 70
     private var vib = true
     private var autoCaps = true
     private var clipboard: ClipboardManager? = null
@@ -111,12 +113,19 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
         r.orientation = LinearLayout.VERTICAL
         r.clipChildren = false
         r.clipToPadding = false
+        // keep the keys above the system buttons (keyboard-down / switch-keyboard) at the bottom of the screen
+        r.setOnApplyWindowInsetsListener { v, ins ->
+            v.setPadding(0, 0, 0, navBottom(ins) + dp(3))
+            ins
+        }
 
         toolbar = buildToolbar()
         r.addView(toolbar, LinearLayout.LayoutParams(MATCH, dp(44)))
         if (!::suggest.isInitialized) suggest = KbSuggest(this)
         strip = buildStrip()
-        r.addView(strip, LinearLayout.LayoutParams(MATCH, dp(38)))
+        val slp0 = LinearLayout.LayoutParams(MATCH, dp(42))
+        slp0.setMargins(dp(8), dp(2), dp(8), dp(1))
+        r.addView(strip, slp0)
 
         content = FrameLayout(this)
         content.clipChildren = false
@@ -184,7 +193,6 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
         add("🎨", 16f) { showPanel(themePanel) }
         add("Aa", 13f) { showPanel(fontPanel) }
         fontBtn = toolButtons[toolButtons.size - 1]
-        add("ALL", 11f) { editAction(android.R.id.selectAll) }
         add("COPY", 11f) { editAction(android.R.id.copy) }
         add("CUT", 11f) { editAction(android.R.id.cut) }
         add("PASTE", 11f) { editAction(android.R.id.paste) }
@@ -325,25 +333,38 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
         if (e.length <= 12) KbPrefs.addRecent(this, e)
     }
 
+    @Suppress("DEPRECATION")
+    private fun navBottom(ins: android.view.WindowInsets): Int =
+        if (Build.VERSION.SDK_INT >= 30) ins.getInsets(android.view.WindowInsets.Type.navigationBars()).bottom
+        else ins.systemWindowInsetBottom
+
+    private val stripDividers = ArrayList<View>()
+
     private fun buildStrip(): LinearLayout {
         val bar = LinearLayout(this)
         bar.orientation = LinearLayout.HORIZONTAL
         bar.gravity = Gravity.CENTER_VERTICAL
         stripViews.clear()
+        stripDividers.clear()
         for (i in 0 until 3) {
             val tv = TextView(this)
             tv.textSize = 16f
             tv.typeface = Typeface.DEFAULT_BOLD
             tv.gravity = Gravity.CENTER
             tv.maxLines = 1
-            tv.setPadding(dp(8), 0, dp(8), dp(3))
+            tv.setPadding(dp(8), 0, dp(8), dp(4))
             tv.setOnClickListener {
                 val w = tv.text?.toString() ?: ""
                 if (w.isNotEmpty()) pickSuggestion(w)
             }
-            val slp = LinearLayout.LayoutParams(0, MATCH, 1f)
-            slp.setMargins(dp(3), dp(1), dp(3), 0)
-            bar.addView(tv, slp)
+            if (i > 0) {
+                val dv = View(this)
+                val dlp = LinearLayout.LayoutParams(dp(1), MATCH)
+                dlp.setMargins(0, dp(9), 0, dp(12))
+                bar.addView(dv, dlp)
+                stripDividers.add(dv)
+            }
+            bar.addView(tv, LinearLayout.LayoutParams(0, MATCH, 1f))
             stripViews.add(tv)
         }
         return bar
@@ -402,7 +423,6 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
         }
         for (i in 0 until 3) {
             stripViews[i].text = order[i]
-            stripViews[i].visibility = if (order[i].isEmpty()) View.INVISIBLE else View.VISIBLE
         }
     }
 
@@ -717,6 +737,9 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
         kb.customKey = if (kb.style == "png") KbThemes.loadCustomKey(this) else null
         if (kb.style == "png" && kb.customKey == null) kb.style = "3d"
         sound = KbPrefs.sound(this)
+        soundIdx = KbPrefs.soundId(this)
+        soundVol = KbPrefs.soundVol(this)
+        if (sound) KbSound.ensure(this)
         vib = KbPrefs.vibrate(this)
         autoCaps = KbPrefs.autoCaps(this)
 
@@ -752,11 +775,14 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
             fontBtn?.setTextColor(dr.textColor())
         }
         for (tv in tabViews) tv.setTextColor(theme.text)
+        // ONE shiny box that always stays visible; the suggested words sit inside it
+        val sdr = KbShiny.make(this, theme, theme.keyFill, 14f)
+        strip.background = sdr
         for (tv in stripViews) {
-            val dr = KbShiny.make(this, theme, theme.keyFill, 12f)
-            tv.background = dr
-            tv.setTextColor(dr.textColor())
+            tv.background = null
+            tv.setTextColor(sdr.textColor())
         }
+        for (dv in stripDividers) dv.setBackgroundColor((sdr.textColor() and 0x00FFFFFF) or (0x55 shl 24))
         fontAdapter.notifyDataSetChanged()
         selectTab(curPage)
         pagerAdapter.notifyDataSetChanged()
@@ -895,11 +921,7 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
             }
         }
         if (sound) {
-            try {
-                (getSystemService(Context.AUDIO_SERVICE) as AudioManager)
-                    .playSoundEffect(AudioManager.FX_KEYPRESS_STANDARD)
-            } catch (e: Throwable) {
-            }
+            KbSound.play(this, soundIdx, soundVol)
         }
     }
 }

@@ -715,9 +715,9 @@ class MyraKeyboardView(context: Context) : View(context) {
     private fun drawGlossy(c: Canvas, k: Key, r: RectF, rad: Float, base: Int) {
         if (!k.pressed) {
             paint.shader = null
-            paint.color = Color.argb((90 * opacity / 100).coerceIn(0, 255), 0, 0, 0)
+            paint.color = Color.argb((55 * opacity / 100).coerceIn(0, 255), 0, 0, 0)
             tmp2.set(r)
-            tmp2.offset(0f, dp(3f))
+            tmp2.offset(0f, dp(2.4f))
             c.drawRoundRect(tmp2, rad, rad, paint)
         }
         fillFace(c, k, r, rad, faceDark(base))
@@ -799,15 +799,16 @@ class MyraKeyboardView(context: Context) : View(context) {
     private fun drawJewel(c: Canvas, k: Key, r: RectF, rad: Float, base: Int) {
         val acc = kbTheme.accent or (0xFF shl 24)
         if (!k.pressed) {
+            // soft shadow tinted with the theme colour (no dirty black smear) + clean side wall
             paint.shader = null
-            paint.color = Color.argb((60 * opacity / 100).coerceIn(0, 255), 0, 0, 0)
+            val tint = blend(acc, Color.BLACK, 0.65f)
+            paint.color = Color.argb((50 * opacity / 100).coerceIn(0, 255), Color.red(tint), Color.green(tint), Color.blue(tint))
             tmp2.set(r)
-            tmp2.inset(-dp(0.8f), 0f)
-            tmp2.offset(0f, dp(4.6f))
-            c.drawRoundRect(tmp2, rad + dp(1f), rad + dp(1f), paint)
-            paint.color = withOp(blend(blend(base, Color.BLACK, 0.5f), acc, 0.2f))
+            tmp2.offset(0f, dp(3.6f))
+            c.drawRoundRect(tmp2, rad, rad, paint)
+            paint.color = withOp(blend(blend(base, Color.BLACK, 0.28f), acc, 0.35f))
             tmp2.set(r)
-            tmp2.offset(0f, dp(3f))
+            tmp2.offset(0f, dp(2.4f))
             c.drawRoundRect(tmp2, rad, rad, paint)
         }
         fillFace(c, k, r, rad, base)
@@ -826,6 +827,22 @@ class MyraKeyboardView(context: Context) : View(context) {
         strokePaint.shader = null
         strokePaint.strokeWidth = old
         drawGloss(c, k, r, rad, dp(3.2f))
+        // inner bevel: bright top-left light, coloured shade at the bottom
+        if (!k.pressed) {
+            val ob = strokePaint.strokeWidth
+            strokePaint.shader = LinearGradient(
+                r.left, r.top, r.left, r.bottom,
+                intArrayOf(0xE6FFFFFF.toInt(), 0x22FFFFFF, 0x00000000, (blend(acc, Color.BLACK, 0.5f) and 0x00FFFFFF) or (0x99 shl 24)),
+                floatArrayOf(0f, 0.35f, 0.6f, 1f), Shader.TileMode.CLAMP
+            )
+            strokePaint.color = Color.WHITE
+            strokePaint.strokeWidth = dp(1.1f)
+            tmp2.set(r)
+            tmp2.inset(dp(4.2f), dp(4.2f))
+            c.drawRoundRect(tmp2, maxOf(1f, rad - dp(4f)), maxOf(1f, rad - dp(4f)), strokePaint)
+            strokePaint.shader = null
+            strokePaint.strokeWidth = ob
+        }
         // pearls / diamonds all around the key
         val bd = k.beads
         if (bd != null) {

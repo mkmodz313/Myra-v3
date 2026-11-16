@@ -75,10 +75,11 @@ class KbShinyDrawable(
 
         // soft shadow + thick side wall
         p.shader = null
-        p.color = Color.argb(70, 0, 0, 0)
-        t.set(r); t.inset(-d * 0.6f, 0f); t.offset(0f, d * 3.8f)
-        canvas.drawRoundRect(t, rad + d, rad + d, p)
-        p.color = blend(blend(faceMid, Color.BLACK, 0.5f), accent, 0.25f)
+        val tint = blend(accent, Color.BLACK, 0.65f)
+        p.color = Color.argb(55, Color.red(tint), Color.green(tint), Color.blue(tint))
+        t.set(r); t.offset(0f, d * 3.2f)
+        canvas.drawRoundRect(t, rad, rad, p)
+        p.color = blend(blend(faceMid, Color.BLACK, 0.3f), accent, 0.35f)
         t.set(r); t.offset(0f, d * 2.5f)
         canvas.drawRoundRect(t, rad, rad, p)
 

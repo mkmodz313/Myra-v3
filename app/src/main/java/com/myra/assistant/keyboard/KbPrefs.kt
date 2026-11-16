@@ -56,6 +56,11 @@ object KbPrefs {
     fun sound(c: Context): Boolean = sp(c).getBoolean("sound", false)
     fun setSound(c: Context, v: Boolean) = putB(c, "sound", v)
 
+    fun soundId(c: Context): Int = sp(c).getInt("sound_id", 0)
+    fun setSoundId(c: Context, v: Int) = putI(c, "sound_id", v)
+    fun soundVol(c: Context): Int = sp(c).getInt("sound_vol", 70)
+    fun setSoundVol(c: Context, v: Int) = putI(c, "sound_vol", v)
+
     fun vibrate(c: Context): Boolean = sp(c).getBoolean("vibrate", true)
     fun setVibrate(c: Context, v: Boolean) = putB(c, "vibrate", v)
 

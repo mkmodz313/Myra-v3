@@ -177,6 +177,42 @@ class KeyboardSettingsActivity : AppCompatActivity() {
         val opts = card("4) Options", null)
         opts.addView(toggle("Key vibration", KbPrefs.vibrate(this)) { KbPrefs.setVibrate(this, it) })
         opts.addView(toggle("Key sound", KbPrefs.sound(this)) { KbPrefs.setSound(this, it) })
+        opts.addView(slider("Sound volume", 10, 100, KbPrefs.soundVol(this)) { KbPrefs.setSoundVol(this, it) })
+        val soundTitle = TextView(this)
+        soundTitle.text = "Key sound chunein (tap karke suniye, jo pasand ho wahi rakhein)"
+        soundTitle.setTextColor(Color.WHITE)
+        soundTitle.textSize = 13f
+        soundTitle.setPadding(0, dp(10), 0, dp(4))
+        opts.addView(soundTitle)
+        val soundChips = ArrayList<TextView>()
+        fun paintSoundChips() {
+            val cur = KbPrefs.soundId(this)
+            for ((i, tv) in soundChips.withIndex()) {
+                val g = GradientDrawable()
+                g.cornerRadius = dp(12).toFloat()
+                g.setColor(if (i == cur) 0xFFFF4DA6.toInt() else 0x33FFFFFF)
+                g.setStroke(dp(1), if (i == cur) Color.WHITE else 0x66FF4DA6)
+                tv.background = g
+            }
+        }
+        for ((i, nm) in KbSound.names.withIndex()) {
+            val tv = TextView(this)
+            tv.text = "🔊  " + "%02d".format(i + 1) + "  " + nm
+            tv.setTextColor(Color.WHITE)
+            tv.textSize = 14f
+            tv.setPadding(dp(14), dp(11), dp(14), dp(11))
+            val lp = LinearLayout.LayoutParams(MATCH, WRAP)
+            lp.topMargin = dp(5)
+            tv.layoutParams = lp
+            tv.setOnClickListener {
+                KbPrefs.setSoundId(this, i)
+                paintSoundChips()
+                KbSound.play(this, i, KbPrefs.soundVol(this))
+            }
+            soundChips.add(tv)
+            opts.addView(tv)
+        }
+        paintSoundChips()
         opts.addView(toggle("Auto capital (English etc.)", KbPrefs.autoCaps(this)) { KbPrefs.setAutoCaps(this, it) })
         opts.addView(toggle("Number hints (1-0) on top row", KbPrefs.hints(this)) { KbPrefs.setHints(this, it) })
         opts.addView(toggle("Key preview popup", KbPrefs.preview(this)) { KbPrefs.setPreview(this, it) })

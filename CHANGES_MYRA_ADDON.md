@@ -118,3 +118,6 @@
 - Old plain key styles (3D / glass / flat / bubble) retired: every theme now uses the shiny Jewel / Neon / Rainbow / Glossy key designs (+ corner star glints)
 - keyboard/KbShiny.kt (new) – shiny 3D button look (shadow, thick wall, coloured rim, gloss, pearls, glints) used by toolbar buttons, suggestion words, panel buttons, font rows and symbol boxes
 - KbFonts: all 30 fonts are always listed (the old glyph filter wrongly hid them)
+- Keyboard now sits above the system bottom buttons (window insets padding); softer tinted key shadows + inner bevel on Jewel keys; suggestions are inside ONE always-visible shiny box
+- Removed the extra "ALL" toolbar button (long-press select all already exists)
+- Key sound now works (SoundPool, independent of phone touch-sound setting): 14 different sounds in res/raw/ksnd_01..14.wav, chooser + volume slider in Keyboard Settings > Options (keyboard/KbSound.kt)
