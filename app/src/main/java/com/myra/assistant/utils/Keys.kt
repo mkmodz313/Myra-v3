@@ -31,10 +31,30 @@ object Keys {
         loaded = true
     }
 
-    fun get(context: Context, name: String): String {
-        if (!loaded) init(context)
-        return map[name] ?: ""
+    /**
+     * Second place for a key (for MT Manager "DEX editor"): each key has its OWN placeholder string in the app code.
+     * Replace the whole string (❤️1 = Gemini, ❤️2 = Web Builder, ❤️3 = Supabase) with the real key.
+     * Either this OR assets/keys.txt is enough.
+     */
+    private val inCode: Map<String, String> = mapOf(
+        "GEMINI_KEY" to "❤️1",
+        "WEB_BUILDER_KEY" to "❤️2",
+        "SUPABASE_KEY" to "❤️3"
+    )
+
+    private fun real(v: String?): String {
+        val t = v?.trim() ?: return ""
+        return if (t.isEmpty() || t.contains('❤') || t.contains('\u2764')) "" else t
     }
 
-    fun get(name: String): String = map[name] ?: ""
+    fun get(context: Context, name: String): String {
+        if (!loaded) init(context)
+        return get(name)
+    }
+
+    fun get(name: String): String {
+        val a = real(map[name])
+        if (a.isNotEmpty()) return a
+        return real(inCode[name])
+    }
 }

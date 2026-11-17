@@ -126,3 +126,4 @@
 - Web Builder (webbuilder/WebBuilderActivity.kt): prompt -> AI builds modern website, live preview, change requests, ZIP save; button in Settings
 - App Lock now really works: locked apps are enforced by AppLockGuard (accessibility service) - lock screen appears when a locked app opens
 - Private Vault (security/VaultActivity.kt): hide photos / videos / music / files in app-private storage behind the lock; card in Settings
+- Keys: also work when edited inside the code with MT Manager (placeholders ❤️1 Gemini / ❤️2 Web Builder / ❤️3 Supabase) or in assets/keys.txt; Web Builder key field is now the main (easiest) way and the error message no longer contains the heart

@@ -112,8 +112,8 @@ class WebBuilderActivity : AppCompatActivity() {
         chips.addView(chip("💎 Pro (best quality)") { modelField.setText("gemini-2.5-pro") })
         col.addView(chips)
 
-        col.addView(label("3) API key (optional)"))
-        keyField = field("Khali chhodein = APK ki assets/keys.txt wali key use hogi", 1, false)
+        col.addView(label("3) API key  (yahan paste karein - sabse aasan)"))
+        keyField = field("API key yahan paste karein", 1, false)
         keyField.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
         keyField.setText(prefs().getString("key", ""))
         col.addView(keyField)
@@ -323,7 +323,7 @@ class WebBuilderActivity : AppCompatActivity() {
         }
         val key = currentKey()
         if (key.isEmpty()) {
-            setStatus("🔑 API key nahi mili. APK me assets/keys.txt me WEB_BUILDER_KEY= ke saamne ❤️ ki jagah key likhein, ya upar key wali field me paste karein.")
+            setStatus("🔑 API key nahi mili. Sabse aasan: upar \"3) API key\" wali field me apni key paste karein aur phir \"Website banao\" dabayein (key yaad rahegi).")
             return
         }
         val model = modelField.text.toString().trim().ifEmpty { "gemini-2.5-flash" }
