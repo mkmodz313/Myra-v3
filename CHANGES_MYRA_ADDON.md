@@ -121,3 +121,8 @@
 - Keyboard now sits above the system bottom buttons (window insets padding); softer tinted key shadows + inner bevel on Jewel keys; suggestions are inside ONE always-visible shiny box
 - Removed the extra "ALL" toolbar button (long-press select all already exists)
 - Key sound now works (SoundPool, independent of phone touch-sound setting): 14 different sounds in res/raw/ksnd_01..14.wav, chooser + volume slider in Keyboard Settings > Options (keyboard/KbSound.kt)
+- Clipboard: unlimited history (file based, up to 5000 items), scrollable list, tap = paste, long-press = delete (keyboard/KbClips.kt)
+- API keys: assets/keys.txt has ❤️ placeholders (GEMINI_KEY / WEB_BUILDER_KEY / SUPABASE_KEY); replace in the built APK with MT Manager. Real keys removed from source (utils/Keys.kt, ApiKeys, CloudConfig, backend/admin/firebase-config.js)
+- Web Builder (webbuilder/WebBuilderActivity.kt): prompt -> AI builds modern website, live preview, change requests, ZIP save; button in Settings
+- App Lock now really works: locked apps are enforced by AppLockGuard (accessibility service) - lock screen appears when a locked app opens
+- Private Vault (security/VaultActivity.kt): hide photos / videos / music / files in app-private storage behind the lock; card in Settings

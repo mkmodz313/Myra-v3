@@ -29,6 +29,7 @@ class MyraApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        try { com.myra.assistant.utils.Keys.init(this) } catch (_: Throwable) { }
         installCrashGuard()
         try { ChatRepository.init(this) } catch (_: Throwable) { }
         try { PowerWatcher.register(this) } catch (_: Throwable) { }

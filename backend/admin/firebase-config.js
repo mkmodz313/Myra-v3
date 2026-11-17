@@ -1,6 +1,6 @@
 // Public Firebase web config (identifiers, not secrets). There is NO password in this file or in the APK.
 export const firebaseConfig = {
-  apiKey: "AIzaSyCsr2uBUu3pYQFE2kaC2fwQ9QAV0LxcyMM",
+  apiKey: "❤️",
   authDomain: "mkmodzboy2026.firebaseapp.com",
   projectId: "mkmodzboy2026",
   storageBucket: "mkmodzboy2026.firebasestorage.app",

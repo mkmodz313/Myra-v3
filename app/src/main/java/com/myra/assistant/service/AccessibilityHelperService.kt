@@ -59,6 +59,13 @@ class AccessibilityHelperService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        try {
+            registerReceiver(object : android.content.BroadcastReceiver() {
+                override fun onReceive(c: android.content.Context?, i: android.content.Intent?) {
+                    com.myra.assistant.security.AppLockGuard.reset()
+                }
+            }, android.content.IntentFilter(android.content.Intent.ACTION_SCREEN_OFF))
+        } catch (_: Throwable) { }
 
         instance = this
         SmartAccessibilityEngine.service = this
@@ -94,8 +101,27 @@ class AccessibilityHelperService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event ?: return
         currentRoot = rootInActiveWindow
+        try {
+            com.myra.assistant.security.AppLockGuard.onEvent(this, event, imePackageSet())
+        } catch (_: Throwable) { }
         com.myra.assistant.accessibility.AccessibilityEventManager.onEvent(event)
         Log.d(TAG, "EVENT -> ${event.packageName} | ${event.className}")
+    }
+
+    private var imeCache: Set<String> = emptySet()
+    private var imeCacheAt = 0L
+
+    /** Keyboards are never locked (otherwise typing the PIN would lock again). */
+    private fun imePackageSet(): Set<String> {
+        val now = System.currentTimeMillis()
+        if (now - imeCacheAt > 30000) {
+            imeCacheAt = now
+            imeCache = try {
+                (getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager)
+                    .inputMethodList.map { it.packageName }.toSet()
+            } catch (_: Throwable) { emptySet() }
+        }
+        return imeCache
     }
 
     override fun onInterrupt() {

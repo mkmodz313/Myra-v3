@@ -13,6 +13,8 @@ import com.myra.assistant.BuildConfig
 object ApiKeys {
     fun gemini(context: Context): String {
         val own = context.applicationContext.prefs().getString(Constants.KEY_API_KEY, "")?.trim().orEmpty()
-        return if (own.isNotEmpty()) own else BuildConfig.DEFAULT_GEMINI_KEY
+        if (own.isNotEmpty()) return own
+        if (BuildConfig.DEFAULT_GEMINI_KEY.isNotEmpty()) return BuildConfig.DEFAULT_GEMINI_KEY
+        return Keys.get(context, "GEMINI_KEY")
     }
 }

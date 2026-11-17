@@ -192,6 +192,14 @@ class SettingsActivity : AppCompatActivity() {
             startActivity(Intent(this, com.myra.assistant.keyboard.KeyboardSettingsActivity::class.java))
         }
 
+        findViewById<View>(R.id.vaultCard).setOnClickListener {
+            startActivity(Intent(this, com.myra.assistant.security.VaultActivity::class.java))
+        }
+
+        findViewById<View>(R.id.webBuilderCard).setOnClickListener {
+            startActivity(Intent(this, com.myra.assistant.webbuilder.WebBuilderActivity::class.java))
+        }
+
         findViewById<View>(R.id.designsCard).setOnClickListener {
             startActivity(Intent(this, com.myra.assistant.design.DesignsActivity::class.java))
         }

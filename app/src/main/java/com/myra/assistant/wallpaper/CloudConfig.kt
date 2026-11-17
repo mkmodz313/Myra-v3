@@ -11,7 +11,9 @@ package com.myra.assistant.wallpaper
  */
 object CloudConfig {
     const val SUPABASE_URL = "https://pxwhprlrkbdbtggwhkrh.supabase.co"
-    const val SUPABASE_KEY = "sb_publishable_yAYblg-E0-liA_poz-e0cQ_BZ9fugOB"
+    /** Read from assets/keys.txt (SUPABASE_KEY=...). In the source it is only a ❤️ placeholder. */
+    val SUPABASE_KEY: String
+        get() = com.myra.assistant.utils.Keys.get("SUPABASE_KEY")
 
     /** Storage bucket (created by supabase_setup.sql). */
     const val BUCKET = "wallpapers"
@@ -23,7 +25,7 @@ object CloudConfig {
     const val REFRESH_INTERVAL_MS = 45_000L
 
     val isConfigured: Boolean
-        get() = !SUPABASE_URL.contains("YOUR_") && !SUPABASE_KEY.startsWith("YOUR_")
+        get() = !SUPABASE_URL.contains("YOUR_") && SUPABASE_KEY.isNotEmpty() && !SUPABASE_KEY.startsWith("YOUR_")
 
     fun base() = SUPABASE_URL.trimEnd('/')
 }

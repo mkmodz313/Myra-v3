@@ -64,6 +64,16 @@ class AppLockActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     companion object {
         var isUnlockedThisSession = false
+        const val EXTRA_TARGET = "target_pkg"
+
+        /** Lock screen for ONE other app that the user locked (shown on top of that app). */
+        fun launchFor(context: Context, pkg: String) {
+            context.startActivity(Intent(context, AppLockActivity::class.java).apply {
+                putExtra(EXTRA_TARGET, pkg)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            })
+        }
+
         fun launch(context: Context) {
             context.startActivity(Intent(context, AppLockActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
@@ -79,7 +89,8 @@ class AppLockActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         
         val anyLockEnabled = SecurityManager.isAppLockEnabled(this) || 
                             isFingerprintEnabled || 
-                            SecurityManager.isDeviceLockEnabled(this)
+                            SecurityManager.isDeviceLockEnabled(this) ||
+                            (intent?.getStringExtra(EXTRA_TARGET) != null && SecurityManager.hasAnyUnlockMethod(this))
         
         if (!anyLockEnabled) {
             finish(); return
@@ -373,6 +384,7 @@ class AppLockActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     private fun onSuccess() {
         isUnlockedThisSession = true
+        intent?.getStringExtra(EXTRA_TARGET)?.let { AppLockGuard.unlocked(it) }
         val prefs = getSharedPreferences("myra_prefs", MODE_PRIVATE)
         val name  = prefs.getString("user_name", "Jaan") ?: "Jaan"
         val mode  = prefs.getString("personality_mode", "gf") ?: "gf"
@@ -495,6 +507,7 @@ class AppLockActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     override fun onBackPressed() { 
+        AppLockGuard.cancelled()
         speak("Pehle unlock karo!", true)
         // If they try to back out, go to home screen so they can't access the app
         val intent = Intent(Intent.ACTION_MAIN)

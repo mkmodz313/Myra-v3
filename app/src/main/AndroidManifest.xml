@@ -79,6 +79,16 @@
 
         <!-- APP LOCK -->
         <activity
+            android:name=".security.VaultActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".webbuilder.WebBuilderActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+
+        <activity
             android:name=".security.AppLockActivity"
             android:exported="false"
             android:theme="@style/Theme.Myra.Transparent"/>

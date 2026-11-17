@@ -56,7 +56,9 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
     private val stripViews = ArrayList<TextView>()
     private var suggestOn = true
     private val ui = android.os.Handler(android.os.Looper.getMainLooper())
-    private lateinit var clipList: LinearLayout
+    private lateinit var clipRv: RecyclerView
+    private lateinit var clipAdapter: KbClipAdapter
+    private var clipEmpty: TextView? = null
     private lateinit var pagerAdapter: KbPagerAdapter
     private lateinit var emojiPager: RecyclerView
     private var pages: List<KbPage> = emptyList()
@@ -544,49 +546,45 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
     private fun buildClipPanel(): LinearLayout {
         val p = LinearLayout(this)
         p.orientation = LinearLayout.VERTICAL
-        p.addView(panelHeader("Clipboard", "Clear", {
-            KbPrefs.clearClips(this)
+        p.addView(panelHeader("Clipboard", "Clear all", {
+            KbClips.clear(this)
             refreshClips()
         }, false))
-        val sv = ScrollView(this)
-        clipList = LinearLayout(this)
-        clipList.orientation = LinearLayout.VERTICAL
-        clipList.setPadding(dp(8), dp(2), dp(8), dp(8))
-        sv.addView(clipList, FrameLayout.LayoutParams(MATCH, WRAP))
-        p.addView(sv, LinearLayout.LayoutParams(MATCH, 0, 1f))
+        clipAdapter = KbClipAdapter({ theme }, { s ->
+            flushComposing()
+            currentInputConnection?.commitText(s, 1)
+            showPanel(null)
+        }, { s ->
+            KbClips.remove(this, s)
+            refreshClips()
+        })
+        clipRv = RecyclerView(this)
+        clipRv.layoutManager = LinearLayoutManager(this)
+        clipRv.overScrollMode = View.OVER_SCROLL_NEVER
+        clipRv.clipToPadding = false
+        clipRv.setPadding(dp(4), 0, dp(4), dp(8))
+        clipRv.adapter = clipAdapter
+        val fl = FrameLayout(this)
+        fl.addView(clipRv, FrameLayout.LayoutParams(MATCH, MATCH))
+        val e = TextView(this)
+        e.text = "Clipboard khali hai. Kuch copy karein, yahan hamesha save rahega (unlimited)."
+        e.textSize = 13f
+        e.gravity = Gravity.CENTER
+        e.setPadding(dp(16), dp(16), dp(16), dp(16))
+        clipEmpty = e
+        fl.addView(e, FrameLayout.LayoutParams(MATCH, MATCH))
+        p.addView(fl, LinearLayout.LayoutParams(MATCH, 0, 1f))
         return p
     }
 
     private fun refreshClips() {
         captureClip()
-        clipList.removeAllViews()
-        val clips = KbPrefs.clips(this)
-        if (clips.isEmpty()) {
-            val t = TextView(this)
-            t.text = "Clipboard khali hai. Kuch copy karein, yahan dikhega."
-            t.textSize = 13f
-            t.setTextColor(theme.text)
-            t.setPadding(dp(8), dp(16), dp(8), dp(8))
-            clipList.addView(t)
-            return
-        }
-        for (s in clips) {
-            val t = TextView(this)
-            t.text = s
-            t.textSize = 14f
-            t.maxLines = 2
-            t.ellipsize = android.text.TextUtils.TruncateAt.END
-            t.setTextColor(theme.text)
-            t.setPadding(dp(12), dp(9), dp(12), dp(9))
-            t.background = pill(withAlpha(theme.keyFill, 200), 10)
-            t.setOnClickListener {
-                currentInputConnection?.commitText(s, 1)
-                showPanel(null)
-            }
-            val lp = LinearLayout.LayoutParams(MATCH, WRAP)
-            lp.topMargin = dp(5)
-            clipList.addView(t, lp)
-        }
+        val clips = KbClips.all(this)
+        clipAdapter.items = ArrayList(clips)
+        clipAdapter.notifyDataSetChanged()
+        clipEmpty?.setTextColor(theme.text)
+        clipEmpty?.visibility = if (clips.isEmpty()) View.VISIBLE else View.GONE
+        clipRv.scrollToPosition(0)
     }
 
     private fun captureClip() {
@@ -595,7 +593,7 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
             val d = cb.primaryClip ?: return
             if (d.itemCount == 0) return
             val t = d.getItemAt(0).coerceToText(this)?.toString() ?: return
-            if (t.isNotBlank()) KbPrefs.addClip(this, t)
+            if (t.isNotBlank()) KbClips.add(this, t)
         } catch (e: Throwable) {
         }
     }
@@ -793,6 +791,7 @@ class MyraKeyboardService : InputMethodService(), MyraKeyboardView.Listener {
         if (root == null) return
         if (KbPrefs.stamp(this) != appliedStamp) applyAll()
         composing.setLength(0)
+        captureClip()
         suggestOn = true
         updateSuggestions()
         showPanel(null)

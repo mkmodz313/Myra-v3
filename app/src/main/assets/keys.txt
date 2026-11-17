@@ -1,0 +1,8 @@
+# MYRA keys file.
+# The real keys are NOT stored in the source code / GitHub.
+# After the APK is built: open the APK in MT Manager > assets > keys.txt > edit,
+# replace each ❤️ with your real key (keep the NAME= part), save, then re-sign the APK.
+# A line that still has the ❤️ is treated as "no key".
+GEMINI_KEY=❤️
+WEB_BUILDER_KEY=❤️
+SUPABASE_KEY=❤️

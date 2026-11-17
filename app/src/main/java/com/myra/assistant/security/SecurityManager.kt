@@ -205,10 +205,9 @@ object SecurityManager {
      * ✅ FIXED: Checks if any lock method is active + package is in list
      */
     fun isPackageLocked(context: Context, packageName: String): Boolean {
-        // Master check: If global app lock is off AND pattern is off, nothing is locked
-        if (!isAppLockEnabled(context) && !isBiometricEnabled(context) && !isDeviceLockEnabled(context)) {
-            return false
-        }
+        // An app that the user ticked in the lock list is protected as soon as ANY unlock method exists
+        // (PIN, pattern, fingerprint or phone screen lock) - no extra master switch needed.
+        if (!hasAnyUnlockMethod(context)) return false
 
         // --- ADDED SYSTEM APP PROTECTION ---
         val systemApps = listOf(
@@ -225,6 +224,10 @@ object SecurityManager {
         Log.d(TAG, "Checking lock for $packageName: $isLocked")
         return isLocked
     }
+
+    fun hasAnyUnlockMethod(context: Context): Boolean =
+        hasPin(context) || PatternManager.isPatternSet(context) ||
+            isBiometricEnabled(context) || isDeviceLockEnabled(context) || isAppLockEnabled(context)
 
     fun addLockedPackage(context: Context, packageName: String) {
         val current = getLockedPackages(context).toMutableSet()
