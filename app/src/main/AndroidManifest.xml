@@ -30,6 +30,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
+    <uses-permission android:name="android.permission.MANAGE_OWN_CALLS"/>
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
@@ -238,19 +240,25 @@
         <service
             android:name=".services.ForegroundVoiceService"
             android:exported="false"
-            android:foregroundServiceType="microphone"/>
+            android:foregroundServiceType="microphone|specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="voice assistant waiting for microphone permission"/>
+        </service>
 
         <!-- CALL MONITOR -->
         <service
             android:name=".service.CallMonitorService"
             android:exported="false"
-            android:foregroundServiceType="phoneCall"/>
+            android:foregroundServiceType="phoneCall|specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="call monitor waiting for permission"/>
+        </service>
 
         <!-- OVERLAY SERVICE -->
         <service
             android:name=".service.MyraOverlayService"
             android:exported="false"
-            android:foregroundServiceType="microphone"/>
+            android:foregroundServiceType="microphone|specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="overlay assistant waiting for microphone permission"/>
+        </service>
 
         <!-- DEVICE ADMIN -->
         <receiver

@@ -32,7 +32,17 @@ class MyraOverlayService : Service() {
         super.onCreate()
         isRunning = true
         createNotificationChannel()
-        startForeground(NOTIF_ID, buildNotification())
+        val micOk = androidx.core.content.ContextCompat.checkSelfPermission(
+            this, android.Manifest.permission.RECORD_AUDIO
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!com.myra.assistant.utils.FgsSafe.start(
+                this, NOTIF_ID, buildNotification(),
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE, micOk
+            )
+        ) {
+            isRunning = false
+            return
+        }
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
     }
 

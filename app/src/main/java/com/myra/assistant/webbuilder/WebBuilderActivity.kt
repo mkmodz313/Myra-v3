@@ -367,6 +367,10 @@ class WebBuilderActivity : AppCompatActivity() {
         ui.postDelayed({ tick() }, 1000)
     }
 
+    /**
+     * Keys that start with "AQ." are Google Cloud (Vertex AI express) keys; they do NOT work on the normal
+     * generativelanguage endpoint. So the right endpoint is tried first and the other one is the fallback.
+     */
     private fun callGemini(key: String, model: String, userText: String): String {
         val body = JSONObject()
         body.put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", SYSTEM_PROMPT))))
@@ -375,12 +379,30 @@ class WebBuilderActivity : AppCompatActivity() {
             JSONArray().put(JSONObject().put("role", "user").put("parts", JSONArray().put(JSONObject().put("text", userText))))
         )
         body.put("generationConfig", JSONObject().put("temperature", 0.85).put("maxOutputTokens", 60000))
-        val req = Request.Builder()
-            .url("https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent")
-            .header("x-goog-api-key", key)
-            .header("Content-Type", "application/json")
-            .post(body.toString().toRequestBody("application/json".toMediaType()))
-            .build()
+        val json = body.toString()
+
+        val studio = Triple("Gemini API", "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent", true)
+        val vertex = Triple("Vertex AI", "https://aiplatform.googleapis.com/v1/publishers/google/models/$model:generateContent?key=$key", false)
+        val order = if (key.startsWith("AQ.")) listOf(vertex, studio) else listOf(studio, vertex)
+
+        val errors = ArrayList<String>()
+        for ((name, url, useHeader) in order) {
+            try {
+                return requestOnce(url, if (useHeader) key else null, json)
+            } catch (e: Throwable) {
+                errors.add("$name: ${e.message}")
+                val m = e.message ?: ""
+                // a timeout / network problem will not be fixed by the other endpoint
+                if (m.contains("timeout", true) || m.contains("Unable to resolve", true)) break
+            }
+        }
+        throw RuntimeException(errors.joinToString("\n\n"))
+    }
+
+    private fun requestOnce(url: String, headerKey: String?, json: String): String {
+        val rb = Request.Builder().url(url).header("Content-Type", "application/json")
+        if (headerKey != null) rb.header("x-goog-api-key", headerKey)
+        val req = rb.post(json.toRequestBody("application/json".toMediaType())).build()
         http.newCall(req).execute().use { resp ->
             val raw = resp.body?.string() ?: ""
             if (!resp.isSuccessful) {
@@ -389,7 +411,7 @@ class WebBuilderActivity : AppCompatActivity() {
                     m = JSONObject(raw).getJSONObject("error").optString("message", m)
                 } catch (e: Throwable) {
                 }
-                throw RuntimeException("API error ${resp.code}: $m")
+                throw RuntimeException("error ${resp.code} - $m")
             }
             val j = JSONObject(raw)
             val cands = j.optJSONArray("candidates")

@@ -99,14 +99,18 @@ class ForegroundVoiceService : Service() {
         super.onCreate()
         instance = this
         isRunning = true
-        try {
-            startForeground(Constants.NOTIF_ID_VOICE, buildNotification())
-        } catch (e: Exception) {
-            // e.g. microphone permission not granted yet on Android 14+: stop quietly instead of crashing
-            Logger.e(TAG, "startForeground failed: ${e.message}")
+        val micOk = androidx.core.content.ContextCompat.checkSelfPermission(
+            this, android.Manifest.permission.RECORD_AUDIO
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val started = com.myra.assistant.utils.FgsSafe.start(
+            this, Constants.NOTIF_ID_VOICE, buildNotification(),
+            android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE, micOk
+        )
+        if (!started) {
+            // microphone permission not granted yet: stop quietly (no crash); it starts again after the permission is given
+            Logger.e(TAG, "voice service not started: microphone permission missing")
             isRunning = false
             instance = null
-            stopSelf()
             return
         }
         ChatRepository.init(applicationContext)
@@ -451,8 +455,8 @@ ${girlfriendPrompt()}
         try {
             networkCallback?.let { (getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager).unregisterNetworkCallback(it) }
         } catch (_: Exception) {}
-        audioRecorder.stop()
-        audioPlayer.release()
+        if (::audioRecorder.isInitialized) audioRecorder.stop()
+        if (::audioPlayer.isInitialized) audioPlayer.release()
         geminiClient?.disconnect()
         releaseLocks()
         try { worker.shutdown() } catch (_: Throwable) {}

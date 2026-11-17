@@ -150,15 +150,12 @@ class CallMonitorService : Service(), TextToSpeech.OnInitListener {
             .setOngoing(true)
             .build()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(
-                1001,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL
-            )
-        } else {
-            startForeground(1001, notification)
-        }
+        val callOk = androidx.core.content.ContextCompat.checkSelfPermission(
+            this, android.Manifest.permission.MANAGE_OWN_CALLS
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        com.myra.assistant.utils.FgsSafe.start(
+            this, 1001, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL, callOk
+        )
     }
 
     private fun createNotificationChannel() {
